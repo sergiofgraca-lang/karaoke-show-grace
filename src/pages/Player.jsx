@@ -10,12 +10,10 @@ function Player() {
   const playerRef = useRef(null)
   const [resultado, setResultado] = useState(null)
 
-  // 🚫 segurança
   if (!musica) {
     return <h2>Erro: música não encontrada</h2>
   }
 
-  // 🔎 extrair ID do vídeo (suporta vários formatos)
   function pegarVideoId(url) {
     if (!url) return null
 
@@ -30,7 +28,6 @@ function Player() {
 
   const videoId = pegarVideoId(video)
 
-  // 🎥 carregar player do YouTube
   useEffect(() => {
     function criarPlayer() {
       if (!videoId) return
@@ -42,6 +39,10 @@ function Player() {
         events: {
           onStateChange: (event) => {
             if (event.data === 0) {
+              // 🔥 PARA o vídeo
+              playerRef.current.stopVideo()
+
+              // 🔥 MOSTRA resultado
               mostrarResultado()
             }
           }
@@ -60,7 +61,6 @@ function Player() {
     }
   }, [videoId])
 
-  // 🎯 resultado estilo "show"
   function mostrarResultado() {
     const nota = (Math.random() * 4 + 6).toFixed(1)
 
@@ -77,12 +77,10 @@ function Player() {
 
     setResultado({ nota, emoji, mensagem })
 
-    // 👏 som de aplauso
     const audio = new Audio("https://www.myinstants.com/media/sounds/aplausos.mp3")
     audio.play()
   }
 
-  // 💾 salvar playlist
   function salvarNaPlaylist() {
     let playlist = JSON.parse(localStorage.getItem("playlist")) || []
 
@@ -111,13 +109,14 @@ function Player() {
 
       <h2>🎤 {musica}</h2>
 
-      {/* 🎥 PLAYER RESPONSIVO */}
+      {/* 🔥 PLAYER ESCONDE QUANDO MOSTRA RESULTADO */}
       <div style={{
         position: "relative",
         width: "90%",
         maxWidth: "800px",
         margin: "20px auto",
-        paddingBottom: "56.25%" // 16:9
+        paddingBottom: "56.25%",
+        display: resultado ? "none" : "block" // 🔥 CORREÇÃO PRINCIPAL
       }}>
         <div
           id="player"
@@ -133,7 +132,7 @@ function Player() {
         ></div>
       </div>
 
-      {/* 🎯 RESULTADO FULLSCREEN */}
+      {/* 🎯 RESULTADO */}
       {resultado && (
         <div style={{
           position: "fixed",
@@ -145,11 +144,9 @@ function Player() {
           alignItems: "center",
           zIndex: 999999,
           padding: "20px",
-          textAlign: "center",
-          overflowY: "auto"
+          textAlign: "center"
         }}>
 
-          {/* 🎉 EMOJI */}
           <div style={{
             fontSize: "clamp(60px, 15vw, 100px)",
             marginBottom: "10px"
@@ -157,49 +154,39 @@ function Player() {
             {resultado.emoji}
           </div>
 
-          {/* 🏆 NOTA */}
           <h2 style={{
-            fontSize: "clamp(28px, 8vw, 42px)",
-            margin: "10px 0"
+            fontSize: "clamp(28px, 8vw, 42px)"
           }}>
             Nota: {resultado.nota}
           </h2>
 
-          {/* 💬 MENSAGEM */}
           <h3 style={{
             marginBottom: "25px",
-            fontSize: "18px",
             color: "#ccc"
           }}>
             {resultado.mensagem}
           </h3>
 
-          {/* 💾 SALVAR */}
           <button
             onClick={salvarNaPlaylist}
             style={{
               padding: "14px 30px",
-              fontSize: "16px",
               borderRadius: "12px",
               border: "none",
-              cursor: "pointer",
-              marginBottom: "12px",
               background: "#00c853",
               color: "#fff",
-              fontWeight: "bold"
+              marginBottom: "10px"
             }}
           >
             💾 Salvar na playlist
           </button>
 
-          {/* ❌ FECHAR */}
           <button
             onClick={() => setResultado(null)}
             style={{
               padding: "12px 25px",
               borderRadius: "10px",
               border: "none",
-              cursor: "pointer",
               background: "#444",
               color: "#fff"
             }}
