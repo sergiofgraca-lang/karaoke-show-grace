@@ -1,152 +1,70 @@
-import { useNavigate, useLocation } from "react-router-dom"
-import { useEffect, useRef, useState } from "react"
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom"
 
-function Player() {
-  const navigate = useNavigate()
-  const location = useLocation()
+import Home from "./pages/Home"
+import Musicas from "./pages/Musicas"
+import Player from "./pages/Player"
+import Buscar from "./pages/Buscar"
+import Login from "./pages/Login"
+import Playlist from "./pages/Playlist" // ✅ IMPORT NO LUGAR CERTO
 
-  const { musica, video } = location.state || {}
+const estiloApp = {
+  backgroundColor: "#0f0f0f",
+  minHeight: "100vh",
+  color: "#fff",
+  fontFamily: "Arial"
+}
 
-  const playerRef = useRef(null)
-  const [resultado, setResultado] = useState(null)
+// 🔒 ROTA PRIVADA
+function RotaPrivada({ children }) {
+  const logado = localStorage.getItem("logado")
+  return logado === "true" ? children : <Navigate to="/login" />
+}
 
-  if (!musica) {
-    return <h2>Erro: música não encontrada</h2>
-  }
-
-  function pegarVideoId(url) {
-    if (!url) return null
-
-    let match = url.match(/v=([^&]+)/)
-    if (match) return match[1]
-
-    match = url.match(/embed\/([^?]+)/)
-    if (match) return match[1]
-
-    return null
-  }
-
-  const videoId = pegarVideoId(video)
-
-  useEffect(() => {
-    function criarPlayer() {
-      if (!videoId) return
-
-      playerRef.current = new window.YT.Player("player", {
-        height: "100%", // 🔥 responsivo
-        width: "100%",  // 🔥 responsivo
-        videoId: videoId,
-        events: {
-          onStateChange: (event) => {
-            if (event.data === 0) {
-              mostrarResultado()
-            }
-          }
-        }
-      })
-    }
-
-    if (window.YT && window.YT.Player) {
-      criarPlayer()
-    } else {
-      const tag = document.createElement("script")
-      tag.src = "https://www.youtube.com/iframe_api"
-      document.body.appendChild(tag)
-
-      window.onYouTubeIframeAPIReady = criarPlayer
-    }
-  }, [videoId])
-
-  function mostrarResultado() {
-    const nota = (Math.random() * 4 + 6).toFixed(1)
-
-    let emoji = "😬"
-    let mensagem = "Pode melhorar!"
-
-    if (nota >= 9) {
-      emoji = "🔥"
-      mensagem = "PERFEITO! VOCÊ É UMA LENDA!"
-    } else if (nota >= 7) {
-      emoji = "😎"
-      mensagem = "Mandou bem demais!"
-    }
-
-    setResultado({ nota, emoji, mensagem })
-
-    const audio = new Audio("https://www.myinstants.com/media/sounds/aplausos.mp3")
-    audio.play()
-  }
-
-  function salvarNaPlaylist() {
-    let playlist = JSON.parse(localStorage.getItem("playlist")) || []
-
-    const musicaAtual = {
-      titulo: musica,
-      videoId: videoId
-    }
-
-    const existe = playlist.find(m => m.videoId === musicaAtual.videoId)
-
-    if (!existe) {
-      playlist.push(musicaAtual)
-      localStorage.setItem("playlist", JSON.stringify(playlist))
-      alert("Salvo na playlist!")
-    } else {
-      alert("Já está na playlist!")
-    }
-  }
-
+function App() {
   return (
-    <div style={{ textAlign: "center", marginTop: "30px" }}>
-      
-      <button onClick={() => navigate("/buscar")}>
-        ⬅ Voltar
-      </button>
+    <div style={estiloApp}>
+      <BrowserRouter>
+        <Routes>
 
-      <h2>🎤 {musica}</h2>
+          {/* 🔓 pública */}
+          <Route path="/login" element={<Login />} />
 
-      {/* 🔥 PLAYER RESPONSIVO */}
-      <div style={{
-        position: "relative",
-        width: "90%",
-        maxWidth: "800px",
-        margin: "20px auto",
-        paddingBottom: "56.25%" // 16:9
-      }}>
-        <div
-          id="player"
-          style={{
-            position: "absolute",
-            top: 0,
-            left: 0,
-            width: "100%",
-            height: "100%",
-            borderRadius: "12px",
-            overflow: "hidden"
-          }}
-        ></div>
-      </div>
+          {/* 🔒 privadas */}
+          <Route path="/" element={
+            <RotaPrivada>
+              <Home />
+            </RotaPrivada>
+          } />
 
-      {/* 🎯 RESULTADO */}
-      {resultado && (
-        <div style={{
-          marginTop: "20px",
-          background: "#111",
-          padding: "20px",
-          borderRadius: "15px",
-          boxShadow: "0 0 20px #00ff88"
-        }}>
-          <h1 style={{ fontSize: "40px" }}>{resultado.emoji}</h1>
-          <h2>Nota: {resultado.nota}</h2>
-          <h3>{resultado.mensagem}</h3>
+          <Route path="/musicas" element={
+            <RotaPrivada>
+              <Musicas />
+            </RotaPrivada>
+          } />
 
-          <button onClick={salvarNaPlaylist}>
-            💾 Salvar na playlist
-          </button>
-        </div>
-      )}
+          <Route path="/player" element={
+            <RotaPrivada>
+              <Player />
+            </RotaPrivada>
+          } />
+
+          <Route path="/buscar" element={
+            <RotaPrivada>
+              <Buscar />
+            </RotaPrivada>
+          } />
+
+          {/* 🎶 NOVA ROTA PLAYLIST (AGORA NO LUGAR CERTO) */}
+          <Route path="/playlist" element={
+            <RotaPrivada>
+              <Playlist />
+            </RotaPrivada>
+          } />
+
+        </Routes>
+      </BrowserRouter>
     </div>
   )
 }
 
-export default Player
+export default App

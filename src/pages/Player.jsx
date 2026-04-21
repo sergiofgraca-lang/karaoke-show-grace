@@ -14,14 +14,13 @@ function Player() {
     return <h2>Erro: música não encontrada</h2>
   }
 
-  // 🔥 CORRIGIDO: aceita vários formatos de URL
   function pegarVideoId(url) {
     if (!url) return null
 
-    let match = url.match(/v=([^&]+)/) // watch?v=
+    let match = url.match(/v=([^&]+)/)
     if (match) return match[1]
 
-    match = url.match(/embed\/([^?]+)/) // embed/
+    match = url.match(/embed\/([^?]+)/)
     if (match) return match[1]
 
     return null
@@ -29,26 +28,16 @@ function Player() {
 
   const videoId = pegarVideoId(video)
 
-  // 🔥 DEBUG (pode apagar depois)
-  console.log("VIDEO:", video)
-  console.log("VIDEO ID:", videoId)
-
-  // 🔥 CORRIGIDO: criação segura do player
   useEffect(() => {
     function criarPlayer() {
-      if (!videoId) {
-        console.log("❌ videoId inválido")
-        return
-      }
+      if (!videoId) return
 
       playerRef.current = new window.YT.Player("player", {
-        height: "170",
-        width: "300",
+        height: "100%", // 🔥 responsivo
+        width: "100%",  // 🔥 responsivo
         videoId: videoId,
         events: {
           onStateChange: (event) => {
-            console.log("Estado:", event.data)
-
             if (event.data === 0) {
               mostrarResultado()
             }
@@ -69,28 +58,24 @@ function Player() {
   }, [videoId])
 
   function mostrarResultado() {
-  const nota = (Math.random() * 4 + 6).toFixed(1)
+    const nota = (Math.random() * 4 + 6).toFixed(1)
 
-  let emoji = "😬"
-  let mensagem = "Pode melhorar!"
+    let emoji = "😬"
+    let mensagem = "Pode melhorar!"
 
-  if (nota >= 9) {
-    emoji = "🔥"
-    mensagem = "PERFEITO! VOCÊ É UMA LENDA!"
-  } else if (nota >= 7) {
-    emoji = "😎"
-    mensagem = "Mandou bem demais!"
-  } else {
-    emoji = "😬"
-    mensagem = "Continue treinando!"
+    if (nota >= 9) {
+      emoji = "🔥"
+      mensagem = "PERFEITO! VOCÊ É UMA LENDA!"
+    } else if (nota >= 7) {
+      emoji = "😎"
+      mensagem = "Mandou bem demais!"
+    }
+
+    setResultado({ nota, emoji, mensagem })
+
+    const audio = new Audio("https://www.myinstants.com/media/sounds/aplausos.mp3")
+    audio.play()
   }
-
-  setResultado({ nota, emoji, mensagem })
-
-  // 🎵 som de aplauso
-  const audio = new Audio("https://www.myinstants.com/media/sounds/aplausos.mp3")
-  audio.play()
-}
 
   function salvarNaPlaylist() {
     let playlist = JSON.parse(localStorage.getItem("playlist")) || []
@@ -114,34 +99,52 @@ function Player() {
   return (
     <div style={{ textAlign: "center", marginTop: "30px" }}>
       
-      <button
-        onClick={() => navigate("/musicas")}
-        style={{ marginBottom: "20px" }}
-      >
+      <button onClick={() => navigate("/buscar")}>
         ⬅ Voltar
       </button>
 
       <h2>🎤 {musica}</h2>
 
-      <div id="player" style={{ marginTop: "20px" }}></div>
+      {/* 🔥 PLAYER RESPONSIVO */}
+      <div style={{
+        position: "relative",
+        width: "90%",
+        maxWidth: "800px",
+        margin: "20px auto",
+        paddingBottom: "56.25%" // 16:9
+      }}>
+        <div
+          id="player"
+          style={{
+            position: "absolute",
+            top: 0,
+            left: 0,
+            width: "100%",
+            height: "100%",
+            borderRadius: "12px",
+            overflow: "hidden"
+          }}
+        ></div>
+      </div>
 
+      {/* 🎯 RESULTADO */}
       {resultado && (
-  <div style={{
-    marginTop: "20px",
-    background: "#111",
-    padding: "20px",
-    borderRadius: "15px",
-    boxShadow: "0 0 20px #00ff88"
-  }}>
-    <h1 style={{ fontSize: "40px" }}>{resultado.emoji}</h1>
-    <h2>Nota: {resultado.nota}</h2>
-    <h3>{resultado.mensagem}</h3>
+        <div style={{
+          marginTop: "20px",
+          background: "#111",
+          padding: "20px",
+          borderRadius: "15px",
+          boxShadow: "0 0 20px #00ff88"
+        }}>
+          <h1 style={{ fontSize: "40px" }}>{resultado.emoji}</h1>
+          <h2>Nota: {resultado.nota}</h2>
+          <h3>{resultado.mensagem}</h3>
 
-    <button onClick={salvarNaPlaylist}>
-      💾 Salvar na playlist
-    </button>
-  </div>
-)}
+          <button onClick={salvarNaPlaylist}>
+            💾 Salvar na playlist
+          </button>
+        </div>
+      )}
     </div>
   )
 }
