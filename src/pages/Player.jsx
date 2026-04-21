@@ -129,22 +129,62 @@ function Player() {
 
       {/* 🎯 RESULTADO */}
       {resultado && (
-        <div style={{
-          marginTop: "20px",
-          background: "#111",
-          padding: "20px",
-          borderRadius: "15px",
-          boxShadow: "0 0 20px #00ff88"
-        }}>
-          <h1 style={{ fontSize: "40px" }}>{resultado.emoji}</h1>
-          <h2>Nota: {resultado.nota}</h2>
-          <h3>{resultado.mensagem}</h3>
+  <div style={{
+    position: "fixed", // 🔥 cobre a tela toda
+    top: 0,
+    left: 0,
+    width: "100%",
+    height: "100%",
+    background: "rgba(0,0,0,0.95)", // fundo escuro
+    display: "flex",
+    flexDirection: "column",
+    justifyContent: "center",
+    alignItems: "center",
+    zIndex: 9999 // 🔥 fica acima de tudo
+  }}>
 
-          <button onClick={salvarNaPlaylist}>
-            💾 Salvar na playlist
-          </button>
-        </div>
-      )}
+    <h1 style={{ fontSize: "80px" }}>
+      {resultado.emoji}
+    </h1>
+
+    <h2 style={{ fontSize: "40px" }}>
+      Nota: {resultado.nota}
+    </h2>
+
+    <h3 style={{ marginBottom: "20px" }}>
+      {resultado.mensagem}
+    </h3>
+
+    <button
+      onClick={salvarNaPlaylist}
+      style={{
+        padding: "12px 25px",
+        fontSize: "16px",
+        borderRadius: "10px",
+        border: "none",
+        cursor: "pointer",
+        marginBottom: "10px"
+      }}
+    >
+      💾 Salvar na playlist
+    </button>
+
+    <button
+      onClick={() => setResultado(null)}
+      style={{
+        padding: "10px 20px",
+        borderRadius: "10px",
+        border: "none",
+        cursor: "pointer",
+        background: "#444",
+        color: "#fff"
+      }}
+    >
+      ❌ Fechar
+    </button>
+
+  </div>
+)}
     </div>
   )
 }
