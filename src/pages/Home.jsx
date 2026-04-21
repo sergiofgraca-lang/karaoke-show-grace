@@ -1,105 +1,66 @@
 import { useNavigate } from "react-router-dom"
-import { useEffect, useRef } from "react"
+import { useEffect, useState } from "react"
 
 function Home() {
   const navigate = useNavigate()
-  const audioRef = useRef(null)
+  const [quantidade, setQuantidade] = useState(0)
 
+  // 🔥 pegar quantidade da playlist
   useEffect(() => {
-    if (audioRef.current) {
-      audioRef.current.volume = 0.2
-      audioRef.current.play().catch(() => {})
-    }
+    const dados = JSON.parse(localStorage.getItem("playlist")) || []
+    setQuantidade(dados.length)
   }, [])
 
   return (
-    <div style={estiloContainer}>
+    <div style={{ textAlign: "center", marginTop: "50px" }}>
       
-      {/* 🎶 áudio */}
-      <audio ref={audioRef} loop>
-        <source src="https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3" />
-      </audio>
-
-      {/* 🚪 botão sair */}
-      <button
-  onClick={() => {
-    localStorage.removeItem("logado")
-    navigate("/login", { replace: true })
-  }}
-  style={botaoSair}
->
-  🚪 Sair
-</button>
-
-      <h1 style={titulo}>🎤 Karaoke Grace</h1>
-
-      <p style={subtitulo}>
-        Escolha sua música e brilhe no palco!
+      <h1>🎤 Karaoke Grace</h1>
+      <p style={{ color: "#aaa" }}>
+        Escolha sua música e solte a voz! 🎶
       </p>
 
+      {/* 🔎 Buscar */}
       <button
         onClick={() => navigate("/buscar")}
-        style={botao}
-        onMouseEnter={(e) => {
-          e.target.style.transform = "scale(1.05)"
-          e.target.style.backgroundColor = "#ff1a1a"
-        }}
-        onMouseLeave={(e) => {
-          e.target.style.transform = "scale(1)"
-          e.target.style.backgroundColor = "#ff0000"
-        }}
+        style={estiloBotao}
       >
-        🎵 Escolher Música
+        🔎 Buscar Música
       </button>
 
+      {/* 🎶 Playlist com contador */}
+      <button
+        onClick={() => navigate("/playlist")}
+        style={estiloBotao}
+      >
+        🎶 Minha Playlist ({quantidade})
+      </button>
+
+      {/* 🚪 Logout */}
+      <button
+        onClick={() => {
+          localStorage.removeItem("logado")
+          navigate("/login")
+        }}
+        style={{ ...estiloBotao, backgroundColor: "#444" }}
+      >
+        🚪 Sair
+      </button>
     </div>
   )
 }
 
-const botaoSair = {
-  position: "absolute",
-  top: "20px",
-  right: "20px",
-  padding: "8px 15px",
-  cursor: "pointer"
-}
-
-const estiloContainer = {
-  display: "flex",
-  flexDirection: "column",
-  justifyContent: "center",
-  alignItems: "center",
-  height: "100vh",
-  color: "#fff",
-  textAlign: "center",
-  backgroundImage: "url('https://images.unsplash.com/photo-1514525253161-7a46d19cd819')",
-  backgroundSize: "cover",
-  backgroundPosition: "center"
-}
-
-const titulo = {
-  fontSize: "50px",
-  marginBottom: "10px",
-  textShadow: "0 0 15px rgba(0,0,0,0.8)"
-}
-
-const subtitulo = {
-  fontSize: "18px",
-  marginBottom: "30px",
-  color: "#eee",
-  textShadow: "0 0 10px rgba(0,0,0,0.7)"
-}
-
-const botao = {
+const estiloBotao = {
+  display: "block",
+  margin: "15px auto",
   padding: "15px 30px",
-  fontSize: "18px",
+  fontSize: "16px",
   borderRadius: "10px",
   border: "none",
+  cursor: "pointer",
   backgroundColor: "#ff0000",
   color: "#fff",
-  cursor: "pointer",
-  transition: "0.3s",
-  boxShadow: "0 0 15px rgba(255,0,0,0.6)"
+  width: "240px",
+  transition: "0.2s"
 }
 
 export default Home

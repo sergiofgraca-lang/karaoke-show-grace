@@ -4,11 +4,32 @@ function Musicas() {
   const navigate = useNavigate()
 
   const lista = [
-    "Evidências - Chitãozinho & Xororó",
-    "Boate Azul - Bruno & Marrone",
-    "Sinônimos - Zé Ramalho",
-    "Fio de Cabelo - Chitãozinho & Xororó"
+    {
+      nome: "Evidências - Chitãozinho & Xororó",
+      video: "https://www.youtube.com/watch?v=ePjtnSPFWK8"
+    },
+    {
+      nome: "Boate Azul - Bruno & Marrone",
+      video: "https://www.youtube.com/watch?v=7JZ8wW6n7hA"
+    },
+    {
+      nome: "Sinônimos - Zé Ramalho",
+      video: "https://www.youtube.com/watch?v=FzZ3bR0W4sM"
+    },
+    {
+      nome: "Fio de Cabelo - Chitãozinho & Xororó",
+      video: "https://www.youtube.com/watch?v=Q0cQd6bqk8A"
+    }
   ]
+
+  function abrirPlayer(musica) {
+    navigate("/player", {
+      state: {
+        musica: musica.nome,
+        video: musica.video
+      }
+    })
+  }
 
   return (
     <div style={{ textAlign: "center", marginTop: "50px" }}>
@@ -29,20 +50,21 @@ function Musicas() {
       {lista.map((musica, index) => (
         <div
           key={index}
+          onClick={() => abrirPlayer(musica)} // 🔥 AQUI É O SEGREDO
           style={{
             margin: "10px auto",
             padding: "15px",
             border: "1px solid #ccc",
             width: "250px",
-            borderRadius: "8px"
+            borderRadius: "8px",
+            cursor: "pointer"
           }}
         >
-          {musica}
+          {musica.nome}
         </div>
       ))}
     </div>
   )
 }
-
 
 export default Musicas

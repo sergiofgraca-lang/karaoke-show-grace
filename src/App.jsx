@@ -5,6 +5,7 @@ import Musicas from "./pages/Musicas"
 import Player from "./pages/Player"
 import Buscar from "./pages/Buscar"
 import Login from "./pages/Login"
+import Playlist from "./pages/Playlist" // ✅ IMPORT NO LUGAR CERTO
 
 const estiloApp = {
   backgroundColor: "#0f0f0f",
@@ -16,7 +17,6 @@ const estiloApp = {
 // 🔒 ROTA PRIVADA
 function RotaPrivada({ children }) {
   const logado = localStorage.getItem("logado")
-
   return logado === "true" ? children : <Navigate to="/login" />
 }
 
@@ -51,6 +51,13 @@ function App() {
           <Route path="/buscar" element={
             <RotaPrivada>
               <Buscar />
+            </RotaPrivada>
+          } />
+
+          {/* 🎶 NOVA ROTA PLAYLIST (AGORA NO LUGAR CERTO) */}
+          <Route path="/playlist" element={
+            <RotaPrivada>
+              <Playlist />
             </RotaPrivada>
           } />
 
