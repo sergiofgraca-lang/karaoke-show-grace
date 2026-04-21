@@ -13,7 +13,6 @@ function Home() {
   useEffect(() => {
     atualizarPlaylist()
 
-    // 🔥 atualiza ao voltar pra tela
     window.addEventListener("focus", atualizarPlaylist)
 
     return () => {
@@ -29,16 +28,27 @@ function Home() {
       minHeight: "100vh",
       color: "#fff",
       position: "relative",
-      zIndex: 1
+      zIndex: 1,
+      transform: "translateZ(0)" // 🔥 força render no mobile
     }}>
       
-      <h1 style={{ color: "#ffffff" }}>
+      {/* 🔥 TÍTULO PRINCIPAL */}
+      <h1 style={{
+        color: "#ffffff",
+        position: "relative",
+        zIndex: 10,
+        textShadow: "0 0 10px rgba(0,0,0,0.8)",
+        transform: "translateZ(0)"
+      }}>
         🎤 Karaoke Grace
       </h1>
 
+      {/* 🔥 SUBTÍTULO */}
       <p style={{
-        color: "#cccccc", // 🔥 melhor contraste no mobile
-        fontSize: "16px"
+        color: "#cccccc",
+        fontSize: "16px",
+        position: "relative",
+        zIndex: 10
       }}>
         Escolha sua música e solte a voz! 🎶
       </p>
@@ -84,7 +94,9 @@ const estiloBotao = {
   backgroundColor: "#ff0000",
   color: "#ffffff",
   width: "240px",
-  transition: "0.2s"
+  transition: "0.2s",
+  position: "relative",
+  zIndex: 10 // 🔥 evita ficar atrás de camadas
 }
 
 export default Home
