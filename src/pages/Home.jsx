@@ -5,17 +5,41 @@ function Home() {
   const navigate = useNavigate()
   const [quantidade, setQuantidade] = useState(0)
 
-  // 🔥 pegar quantidade da playlist
-  useEffect(() => {
+  function atualizarPlaylist() {
     const dados = JSON.parse(localStorage.getItem("playlist")) || []
     setQuantidade(dados.length)
+  }
+
+  useEffect(() => {
+    atualizarPlaylist()
+
+    // 🔥 atualiza ao voltar pra tela
+    window.addEventListener("focus", atualizarPlaylist)
+
+    return () => {
+      window.removeEventListener("focus", atualizarPlaylist)
+    }
   }, [])
 
   return (
-    <div style={{ textAlign: "center", marginTop: "50px" }}>
+    <div style={{
+      textAlign: "center",
+      marginTop: "50px",
+      backgroundColor: "#0f0f0f",
+      minHeight: "100vh",
+      color: "#fff",
+      position: "relative",
+      zIndex: 1
+    }}>
       
-      <h1>🎤 Karaoke Grace</h1>
-      <p style={{ color: "#aaa" }}>
+      <h1 style={{ color: "#ffffff" }}>
+        🎤 Karaoke Grace
+      </h1>
+
+      <p style={{
+        color: "#cccccc", // 🔥 melhor contraste no mobile
+        fontSize: "16px"
+      }}>
         Escolha sua música e solte a voz! 🎶
       </p>
 
@@ -27,7 +51,7 @@ function Home() {
         🔎 Buscar Música
       </button>
 
-      {/* 🎶 Playlist com contador */}
+      {/* 🎶 Playlist */}
       <button
         onClick={() => navigate("/playlist")}
         style={estiloBotao}
@@ -58,7 +82,7 @@ const estiloBotao = {
   border: "none",
   cursor: "pointer",
   backgroundColor: "#ff0000",
-  color: "#fff",
+  color: "#ffffff",
   width: "240px",
   transition: "0.2s"
 }
