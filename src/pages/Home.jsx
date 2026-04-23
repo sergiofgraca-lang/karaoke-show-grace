@@ -52,7 +52,7 @@ function Home() {
         loop
       />
 
-      <h1>🎤 Karaoke Grace</h1>
+      <h1>🎤 Karaoke Show Grace</h1>
       <p>Escolha sua música e solte a voz! 🎶</p>
 
       {/* 🔥 CONTAINER DOS BOTÕES (FORÇA VERTICAL) */}

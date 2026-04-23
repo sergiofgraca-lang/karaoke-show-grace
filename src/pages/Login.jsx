@@ -24,7 +24,7 @@ function Login() {
 
       <div style={card}>
         <h2 style={titulo}>🔐 Login</h2>
-        <h1 style={titulo}>🎤 Karaoke Grace</h1>
+        <h1 style={titulo}>🎤 Karaoke Show Grace</h1>
 
         <input
           type="text"
