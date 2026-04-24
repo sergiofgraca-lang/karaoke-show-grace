@@ -6,22 +6,36 @@ function Login() {
   const [senha, setSenha] = useState("")
   const navigate = useNavigate()
 
-  // 🔐 CONFIGURAÇÃO
-  const USUARIO = "Sirgio"
-  const SENHA = "Sirgiograce@1" // 🔥 MUDE AQUI
+  const entrar = async () => {
+    try {
+      const res = await fetch("http://127.0.0.1:8000/api/login/", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          usuario: usuario,
+          senha: senha
+        })
+      })
 
-  const entrar = () => {
-    if (usuario === USUARIO && senha === SENHA) {
-      localStorage.setItem("logado", "true")
-      navigate("/")
-    } else {
-      alert("Usuário ou senha incorretos")
+      const data = await res.json()
+
+      if (data.status === "ok") {
+        localStorage.setItem("logado", "true")
+        navigate("/")
+      } else {
+        alert("Usuário ou senha inválidos")
+      }
+
+    } catch (err) {
+      console.error(err)
+      alert("Erro ao conectar com o servidor")
     }
   }
 
   return (
     <div style={container}>
-
       <div style={card}>
         <h2 style={titulo}>🔐 Login</h2>
         <h1 style={titulo}>🎤 Karaoke Show Grace</h1>
@@ -46,14 +60,11 @@ function Login() {
           Entrar
         </button>
       </div>
-
     </div>
   )
 }
 
 export default Login
-
-// 🎨 ESTILO
 
 const container = {
   display: "flex",
@@ -69,8 +80,7 @@ const card = {
   backgroundColor: "rgba(0,0,0,0.8)",
   padding: "40px",
   borderRadius: "12px",
-  textAlign: "center",
-  boxShadow: "0 0 20px rgba(0,0,0,0.8)"
+  textAlign: "center"
 }
 
 const titulo = {
