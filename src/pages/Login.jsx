@@ -6,32 +6,33 @@ function Login() {
   const [senha, setSenha] = useState("")
   const navigate = useNavigate()
 
-  const entrar = async () => {
-    try {
-      const res = await fetch("http://127.0.0.1:8000/api/login/", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({
-          usuario,
-          senha
-        })
+ const entrar = async () => {
+  try {
+    const res = await fetch("https://karaoke-show-grace-backend-production.up.railway.app/api/login/", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        usuario,
+        senha
       })
+    })
 
-      const data = await res.json()
+    const data = await res.json()
 
-      if (data.status === "ok") {
-        localStorage.setItem("logado", "true")
-        navigate("/")
-      } else {
-        alert("Usuário ou senha inválidos")
-      }
-
-    } catch (err) {
-      alert("Erro ao conectar com servidor")
+    if (data.status === "ok") {
+      localStorage.setItem("logado", "true")
+      navigate("/")
+    } else {
+      alert("Usuário ou senha inválidos")
     }
+
+  } catch (err) {
+    console.error(err)
+    alert("Erro ao conectar com servidor")
   }
+}
 
   return (
     <div style={container}>
