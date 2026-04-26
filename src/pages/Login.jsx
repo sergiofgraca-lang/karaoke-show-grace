@@ -14,8 +14,8 @@ function Login() {
           "Content-Type": "application/json"
         },
         body: JSON.stringify({
-          usuario: usuario,
-          senha: senha
+          usuario,
+          senha
         })
       })
 
@@ -29,8 +29,7 @@ function Login() {
       }
 
     } catch (err) {
-      console.error(err)
-      alert("Erro ao conectar com o servidor")
+      alert("Erro ao conectar com servidor")
     }
   }
 
