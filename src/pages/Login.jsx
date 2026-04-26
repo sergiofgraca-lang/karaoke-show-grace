@@ -6,9 +6,11 @@ function Login() {
   const [senha, setSenha] = useState("")
   const navigate = useNavigate()
 
- const entrar = async () => {
+ const API = import.meta.env.VITE_API_URL
+
+const entrar = async () => {
   try {
-    const res = await fetch("https://karaoke-show-grace-backend-production.up.railway.app/api/login/", {
+    const res = await fetch(`${API}/api/login/`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json"
@@ -29,7 +31,6 @@ function Login() {
     }
 
   } catch (err) {
-    console.error(err)
     alert("Erro ao conectar com servidor")
   }
 }
