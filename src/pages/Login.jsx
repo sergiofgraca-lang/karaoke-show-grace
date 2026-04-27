@@ -6,103 +6,47 @@ function Login() {
   const [senha, setSenha] = useState("")
   const navigate = useNavigate()
 
- const API = import.meta.env.VITE_API_URL
+  const API = "https://karaoke-show-grace-backend-production.up.railway.app"
 
-const entrar = async () => {
-  try {
-    const res = await fetch(`${API}/api/token/`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({
-        username: usuario,
-        password: senha
+  const entrar = async () => {
+    try {
+      const res = await fetch(`${API}/api/token/`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          username: usuario,
+          password: senha
+        })
       })
-    })
 
-    const data = await res.json()
+      const data = await res.json()
+      console.log(data)
 
-    if (data.access) {
-      localStorage.setItem("token", data.access)
-      navigate("/")
-    } else {
-      alert("Login inválido")
+      if (data.access) {
+        localStorage.setItem("token", data.access)
+        navigate("/")
+      } else {
+        alert("Login inválido")
+      }
+
+    } catch (err) {
+      console.error(err)
+      alert("Erro ao conectar com servidor")
     }
-
-  } catch (err) {
-    alert("Erro ao conectar com servidor")
   }
-}
+
   return (
-    <div style={container}>
-      <div style={card}>
-        <h2 style={titulo}>🔐 Login</h2>
-        <h1 style={titulo}>🎤 Karaoke Show Grace</h1>
+    <div>
+      <h2>Login</h2>
 
-        <input
-          type="text"
-          placeholder="Usuário"
-          value={usuario}
-          onChange={(e) => setUsuario(e.target.value)}
-          style={input}
-        />
+      <input value={usuario} onChange={e => setUsuario(e.target.value)} />
+      <input value={senha} onChange={e => setSenha(e.target.value)} type="password" />
 
-        <input
-          type="password"
-          placeholder="Senha"
-          value={senha}
-          onChange={(e) => setSenha(e.target.value)}
-          style={input}
-        />
-
-        <button onClick={entrar} style={botao}>
-          Entrar
-        </button>
-      </div>
+      <button onClick={entrar}>Entrar</button>
     </div>
   )
 }
 
 export default Login
-
-const container = {
-  display: "flex",
-  justifyContent: "center",
-  alignItems: "center",
-  height: "100vh",
-  backgroundImage: "url('https://images.unsplash.com/photo-1514525253161-7a46d19cd819')",
-  backgroundSize: "cover",
-  backgroundPosition: "center"
-}
-
-const card = {
-  backgroundColor: "rgba(0,0,0,0.8)",
-  padding: "40px",
-  borderRadius: "12px",
-  textAlign: "center"
-}
-
-const titulo = {
-  color: "#fff",
-  marginBottom: "20px"
-}
-
-const input = {
-  display: "block",
-  width: "250px",
-  padding: "10px",
-  margin: "10px auto",
-  borderRadius: "8px",
-  border: "none"
-}
-
-const botao = {
-  marginTop: "15px",
-  padding: "10px 20px",
-  borderRadius: "8px",
-  border: "none",
-  backgroundColor: "#ff0000",
-  color: "#fff",
-  cursor: "pointer"
-}
