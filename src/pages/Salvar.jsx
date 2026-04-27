@@ -1,10 +1,4 @@
-export default function Salvar() {
-  return (
-    <div style={{ color: "#fff", padding: 20 }}>
-      <h2>Salvar Música</h2>
-    </div>
-  )
-}import { useState } from "react"
+import { useState } from "react"
 
 export default function Salvar() {
   const [titulo, setTitulo] = useState("")
@@ -39,7 +33,7 @@ export default function Salvar() {
 
     } catch (err) {
       console.error(err)
-      alert("Erro ao conectar no servidor")
+      alert("Erro ao conectar com servidor")
     }
   }
 
@@ -51,21 +45,18 @@ export default function Salvar() {
         placeholder="Título"
         value={titulo}
         onChange={(e) => setTitulo(e.target.value)}
-        style={{ display: "block", margin: 10 }}
       />
 
       <input
-        placeholder="Video ID (YouTube)"
+        placeholder="Video ID"
         value={videoId}
         onChange={(e) => setVideoId(e.target.value)}
-        style={{ display: "block", margin: 10 }}
       />
 
       <input
         placeholder="Cantor"
         value={cantor}
         onChange={(e) => setCantor(e.target.value)}
-        style={{ display: "block", margin: 10 }}
       />
 
       <button onClick={salvar}>
