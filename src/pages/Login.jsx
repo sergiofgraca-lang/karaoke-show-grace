@@ -10,31 +10,30 @@ function Login() {
 
 const entrar = async () => {
   try {
-    const res = await fetch(`${API}/api/login/`, {
+    const res = await fetch(`${API}/api/token/`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json"
       },
       body: JSON.stringify({
-        usuario,
-        senha
+        username: usuario,
+        password: senha
       })
     })
 
     const data = await res.json()
 
-    if (data.status === "ok") {
-      localStorage.setItem("logado", "true")
+    if (data.access) {
+      localStorage.setItem("token", data.access)
       navigate("/")
     } else {
-      alert("Usuário ou senha inválidos")
+      alert("Login inválido")
     }
 
   } catch (err) {
     alert("Erro ao conectar com servidor")
   }
 }
-
   return (
     <div style={container}>
       <div style={card}>

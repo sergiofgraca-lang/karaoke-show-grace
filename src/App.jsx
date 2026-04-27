@@ -5,6 +5,7 @@ import Player from "./pages/Player"
 import Buscar from "./pages/Buscar"
 import Login from "./pages/Login"
 import Playlist from "./pages/Playlist"
+import Ranking from "./pages/Ranking"
 
 const estiloApp = {
   backgroundColor: "#121212",
@@ -14,8 +15,8 @@ const estiloApp = {
 }
 
 function RotaPrivada({ children }) {
-  const logado = localStorage.getItem("logado")
-  return logado === "true" ? children : <Navigate to="/login" />
+  const token = localStorage.getItem("token")
+  return token ? children : <Navigate to="/login" />
 }
 
 function App() {
@@ -42,12 +43,14 @@ function App() {
             <RotaPrivada><Playlist /></RotaPrivada>
           } />
 
+          <Route path="/ranking" element={
+            <RotaPrivada><Ranking /></RotaPrivada>
+          } />
+
         </Routes>
       </BrowserRouter>
     </div>
   )
 }
-
-
 
 export default App

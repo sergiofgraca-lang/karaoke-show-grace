@@ -10,6 +10,8 @@ function Player() {
   const playerRef = useRef(null)
   const [resultado, setResultado] = useState(null)
 
+  const API = import.meta.env.VITE_API_URL // 🔥 backend local
+
   if (!musica) return <h2>Erro: música não encontrada</h2>
 
   function getId(url) {
@@ -79,10 +81,8 @@ function Player() {
     audio.play().catch(() => {})
   }
 
-  // 🔥 ALTERAÇÃO AQUI
-  function salvarNaPlaylist() {
-    let playlist = JSON.parse(localStorage.getItem("playlist")) || []
-
+  // 🔥 AGORA SALVA NO DJANGO
+  async function salvarNaPlaylist() {
     const cantor = prompt("🎤 Quem cantou essa música?")
 
     if (!cantor) {
@@ -90,22 +90,29 @@ function Player() {
       return
     }
 
-    const musicaAtual = {
-      titulo: musica,
-      videoId: videoId,
-      cantor: cantor
-    }
+    try {
+      const res = await fetch(`${API}/api/salvar/`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          titulo: musica,
+          videoId: videoId,
+          cantor: cantor
+        })
+      })
 
-    const existe = playlist.find(
-      m => m.videoId === musicaAtual.videoId && m.cantor === cantor
-    )
+      const data = await res.json()
 
-    if (!existe) {
-      playlist.push(musicaAtual)
-      localStorage.setItem("playlist", JSON.stringify(playlist))
-      alert(`Salvo! 🎶 Cantor: ${cantor}`)
-    } else {
-      alert("Esse cantor já salvou essa música!")
+      if (data.status === "ok") {
+        alert(`Salvo no banco! 🎶 Cantor: ${cantor}`)
+      } else {
+        alert("Erro ao salvar")
+      }
+
+    } catch (err) {
+      alert("Erro ao conectar com servidor")
     }
   }
 

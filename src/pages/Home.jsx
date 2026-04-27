@@ -16,7 +16,7 @@ function Home() {
 
     window.addEventListener("focus", atualizarPlaylist)
 
-    // 🎵 Música de fundo (corrigido p/ mobile)
+    // 🎵 Música de fundo
     if (audioRef.current) {
       audioRef.current.volume = 0.2
 
@@ -34,49 +34,36 @@ function Home() {
   }, [])
 
   return (
-    <div style={{
-      display: "flex",
-      flexDirection: "column",
-      alignItems: "center",
-      justifyContent: "center",
-      minHeight: "100vh",
-      background: "#000",
-      color: "#fff",
-      padding: "20px"
-    }}>
+    <div style={container}>
 
       {/* 🎵 Música */}
       <audio
         ref={audioRef}
-        src="https://www.bensound.com/bensound-music/bensound-dance.mp3"
-        loop
+        src="https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3"
       />
 
       <h1>🎤 Karaoke Show Grace</h1>
       <p>Escolha sua música e solte a voz! 🎶</p>
 
-      {/* 🔥 CONTAINER DOS BOTÕES (FORÇA VERTICAL) */}
-      <div style={{
-        display: "flex",
-        flexDirection: "column",
-        gap: "15px",
-        marginTop: "30px",
-        width: "100%",
-        maxWidth: "260px"
-      }}>
+      <div style={botoesContainer}>
 
         <button style={botao} onClick={() => navigate("/buscar")}>
           🔎 Buscar Música
+        </button>
+
+        <button style={botao} onClick={() => navigate("/ranking")}>
+          🏆 Ver Ranking
         </button>
 
         <button style={botao} onClick={() => navigate("/playlist")}>
           🎶 Minha Playlist ({quantidade})
         </button>
 
+        {/* 🔥 UM ÚNICO LOGOUT (PADRÃO JWT) */}
         <button
           style={{ ...botao, backgroundColor: "#555" }}
           onClick={() => {
-            localStorage.removeItem("logado")
+            localStorage.removeItem("token")
             navigate("/login")
           }}
         >
@@ -86,6 +73,26 @@ function Home() {
       </div>
     </div>
   )
+}
+
+const container = {
+  display: "flex",
+  flexDirection: "column",
+  alignItems: "center",
+  justifyContent: "center",
+  minHeight: "100vh",
+  background: "#000",
+  color: "#fff",
+  padding: "20px"
+}
+
+const botoesContainer = {
+  display: "flex",
+  flexDirection: "column",
+  gap: "15px",
+  marginTop: "30px",
+  width: "100%",
+  maxWidth: "260px"
 }
 
 const botao = {
