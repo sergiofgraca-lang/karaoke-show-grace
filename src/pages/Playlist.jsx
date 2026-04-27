@@ -5,46 +5,41 @@ function Playlist() {
   const [musicas, setMusicas] = useState([])
   const navigate = useNavigate()
 
-  const API = import.meta.env.VITE_API_URL
+  const API =
+    import.meta.env.VITE_API_URL && import.meta.env.VITE_API_URL !== "undefined"
+      ? import.meta.env.VITE_API_URL
+      : "http://127.0.0.1:8000"
+
+  const carregarMusicas = async () => {
+    try {
+      const res = await fetch(`${API}/api/listar/`)
+
+      if (!res.ok) {
+        throw new Error("Erro ao buscar músicas")
+      }
+
+      const data = await res.json()
+      setMusicas(data)
+
+    } catch (err) {
+      console.error(err)
+      alert("Erro ao carregar playlist")
+    }
+  }
 
   useEffect(() => {
-    async function carregar() {
-      try {
-        const token = localStorage.getItem("token")
+    carregarMusicas()
+  }, [])
 
-        const res = await fetch(`${API}/api/listar/`, {
-          headers: {
-            Authorization: `Bearer ${token}`
-          }
-        })
-
-        if (!res.ok) {
-          throw new Error("Erro na requisição")
-        }
-
-        const data = await res.json()
-        setMusicas(data)
-
-      } catch (err) {
-        console.error(err)
-        alert("Erro ao carregar playlist")
-      }
-    }
-
-    carregar()
-  }, [API])
-
-  async function deletar(id) {
+  const deletar = async (id) => {
     const confirmar = confirm("Excluir música?")
     if (!confirmar) return
 
     try {
-      const token = localStorage.getItem("token")
-
       const res = await fetch(`${API}/api/deletar/${id}/`, {
         method: "DELETE",
         headers: {
-          Authorization: `Bearer ${token}`
+          "Content-Type": "application/json"
         }
       })
 
@@ -56,28 +51,14 @@ function Playlist() {
 
     } catch (err) {
       console.error(err)
-      alert("Erro ao excluir")
+      alert("Erro ao excluir música")
     }
   }
 
   return (
-    <div style={{
-      padding: "20px",
-      color: "#fff"
-    }}>
+    <div style={{ padding: "20px", color: "#fff" }}>
 
-      <button 
-        onClick={() => navigate("/")}
-        style={{
-          marginBottom: "20px",
-          padding: "8px 15px",
-          borderRadius: "6px",
-          border: "none",
-          background: "#444",
-          color: "#fff",
-          cursor: "pointer"
-        }}
-      >
+      <button onClick={() => navigate("/")}>
         ⬅ Voltar
       </button>
 
@@ -88,34 +69,26 @@ function Playlist() {
       {musicas.map((m) => (
         <div key={m.id} style={{
           background: "#222",
-          padding: "15px",
-          margin: "15px 0",
-          borderRadius: "10px"
+          padding: "10px",
+          margin: "10px 0",
+          borderRadius: "8px"
         }}>
-
-          <strong style={{ fontSize: "16px" }}>
-            {m.titulo}
-          </strong>
-
-          <p style={{ margin: "5px 0", color: "#ccc" }}>
-            🎤 {m.cantor}
-          </p>
+          <strong>{m.titulo}</strong><br />
+          🎤 {m.cantor}
 
           <button
             onClick={() => deletar(m.id)}
             style={{
-              marginTop: "10px",
-              padding: "6px 12px",
-              background: "#d32f2f",
+              marginTop: "8px",
+              background: "red",
               color: "#fff",
               border: "none",
-              borderRadius: "6px",
-              cursor: "pointer"
+              padding: "5px 10px",
+              borderRadius: "5px"
             }}
           >
             🗑 Excluir
           </button>
-
         </div>
       ))}
     </div>
