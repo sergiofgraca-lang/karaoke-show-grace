@@ -8,42 +8,54 @@ function Playlist() {
   const API = import.meta.env.VITE_API_URL
 
   useEffect(() => {
-  async function carregar() {
+    async function carregar() {
+      try {
+        const token = localStorage.getItem("token")
+
+        const res = await fetch(`${API}/api/listar/`, {
+          headers: {
+            Authorization: `Bearer ${token}`
+          }
+        })
+
+        if (!res.ok) {
+          throw new Error("Erro na requisição")
+        }
+
+        const data = await res.json()
+        setMusicas(data)
+
+      } catch (err) {
+        console.error(err)
+        alert("Erro ao carregar playlist")
+      }
+    }
+
+    carregar()
+  }, [API])
+
+  async function deletar(id) {
+    const confirmar = confirm("Excluir música?")
+    if (!confirmar) return
+
     try {
       const token = localStorage.getItem("token")
 
-      const res = await fetch("http://127.0.0.1:8000/api/listar/", {
+      const res = await fetch(`${API}/api/deletar/${id}/`, {
+        method: "DELETE",
         headers: {
           Authorization: `Bearer ${token}`
         }
       })
 
-      const data = await res.json()
-      setMusicas(data)
+      if (!res.ok) {
+        throw new Error("Erro ao deletar")
+      }
 
-    } catch (err) {
-      alert("Erro ao carregar playlist")
-    }
-  }
-
-  carregar()
-}, [])
-
-  // ✅ AGORA DENTRO DO COMPONENTE (FUNCIONA)
-  async function deletar(id) {
-    const confirmar = confirm("Excluir música?")
-
-    if (!confirmar) return
-
-    try {
-      await fetch(`${API}/api/deletar/${id}/`, {
-        method: "DELETE"
-      })
-
-      // atualiza tela
       setMusicas(prev => prev.filter(m => m.id !== id))
 
     } catch (err) {
+      console.error(err)
       alert("Erro ao excluir")
     }
   }
@@ -54,7 +66,6 @@ function Playlist() {
       color: "#fff"
     }}>
 
-      {/* 🔙 BOTÃO VOLTAR */}
       <button 
         onClick={() => navigate("/")}
         style={{
@@ -90,7 +101,6 @@ function Playlist() {
             🎤 {m.cantor}
           </p>
 
-          {/* ✅ BOTÃO MELHOR POSICIONADO */}
           <button
             onClick={() => deletar(m.id)}
             style={{
