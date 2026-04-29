@@ -31,7 +31,9 @@ function Playlist() {
     carregarMusicas()
   }, [])
 
-  const deletar = async (id) => {
+  const deletar = async (id, e) => {
+    e.stopPropagation() // 🔥 impede abrir o player
+
     const confirmar = confirm("Excluir música?")
     if (!confirmar) return
 
@@ -55,6 +57,17 @@ function Playlist() {
     }
   }
 
+  const tocar = (videoId) => {
+    if (!videoId) {
+      alert("Essa música não tem vídeo")
+      return
+    }
+
+    console.log("▶ Tocando:", videoId)
+
+    navigate(`/player/${videoId}`)
+  }
+
   return (
     <div style={{ padding: "20px", color: "#fff" }}>
 
@@ -67,24 +80,35 @@ function Playlist() {
       {musicas.length === 0 && <p>Nenhuma música ainda</p>}
 
       {musicas.map((m) => (
-        <div key={m.id} style={{
-          background: "#222",
-          padding: "10px",
-          margin: "10px 0",
-          borderRadius: "8px"
-        }}>
+        <div
+          key={m.id}
+          onClick={() => tocar(m.videoId)}
+          style={{
+            background: "#222",
+            padding: "12px",
+            margin: "10px 0",
+            borderRadius: "8px",
+            cursor: "pointer",
+            transition: "0.2s"
+          }}
+          onMouseEnter={(e) => e.currentTarget.style.background = "#333"}
+          onMouseLeave={(e) => e.currentTarget.style.background = "#222"}
+        >
           <strong>{m.titulo}</strong><br />
           🎤 {m.cantor}
 
+          <br />
+
           <button
-            onClick={() => deletar(m.id)}
+            onClick={(e) => deletar(m.id, e)}
             style={{
               marginTop: "8px",
               background: "red",
               color: "#fff",
               border: "none",
               padding: "5px 10px",
-              borderRadius: "5px"
+              borderRadius: "5px",
+              cursor: "pointer"
             }}
           >
             🗑 Excluir
