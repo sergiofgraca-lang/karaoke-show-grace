@@ -22,8 +22,9 @@ function RotaPrivada({ children }) {
 
 function App() {
   return (
-    <div style={estiloApp}>
-      <BrowserRouter>
+    <BrowserRouter> {/* 🔥 TEM QUE ENVOLVER TUDO */}
+      <div style={estiloApp}>
+
         <Routes>
 
           <Route path="/login" element={<Login />} />
@@ -32,14 +33,12 @@ function App() {
             <RotaPrivada><Home /></RotaPrivada>
           } />
 
-          {/* ✅ PLAYER CORRETO */}
-          <Route path="/player/:videoId" element={
-            <RotaPrivada><Player /></RotaPrivada>
-          } />
-
-          {/* ✅ BUSCAR (ESTAVA FALTANDO) */}
           <Route path="/buscar" element={
             <RotaPrivada><Buscar /></RotaPrivada>
+          } />
+
+          <Route path="/player/:videoId" element={
+            <RotaPrivada><Player /></RotaPrivada>
           } />
 
           <Route path="/playlist" element={
@@ -55,8 +54,9 @@ function App() {
           } />
 
         </Routes>
-      </BrowserRouter>
-    </div>
+
+      </div>
+    </BrowserRouter>
   )
 }
 
