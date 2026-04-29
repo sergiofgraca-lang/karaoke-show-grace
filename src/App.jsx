@@ -32,10 +32,12 @@ function App() {
             <RotaPrivada><Home /></RotaPrivada>
           } />
 
-          <Route path="/player" element={
+          {/* ✅ PLAYER CORRETO */}
+          <Route path="/player/:videoId" element={
             <RotaPrivada><Player /></RotaPrivada>
           } />
 
+          {/* ✅ BUSCAR (ESTAVA FALTANDO) */}
           <Route path="/buscar" element={
             <RotaPrivada><Buscar /></RotaPrivada>
           } />
@@ -48,7 +50,6 @@ function App() {
             <RotaPrivada><Ranking /></RotaPrivada>
           } />
 
-          {/* ✔ AGORA SIM CORRETO */}
           <Route path="/salvar" element={
             <RotaPrivada><Salvar /></RotaPrivada>
           } />
