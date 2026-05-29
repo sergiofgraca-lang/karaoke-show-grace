@@ -6,7 +6,7 @@ import Buscar from "./pages/Buscar"
 import Login from "./pages/Login"
 import Playlist from "./pages/Playlist"
 import Ranking from "./pages/Ranking"
-import Salvar from "./pages/Salvar"
+
 
 const estiloApp = {
   backgroundColor: "#121212",
@@ -49,9 +49,7 @@ function App() {
             <RotaPrivada><Ranking /></RotaPrivada>
           } />
 
-          <Route path="/salvar" element={
-            <RotaPrivada><Salvar /></RotaPrivada>
-          } />
+         
 
         </Routes>
 
