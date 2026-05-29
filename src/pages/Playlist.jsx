@@ -38,7 +38,7 @@ function Playlist() {
     if (!confirmar) return
 
     try {
-      const res = await fetch(`${API}/api/deletar/${id}/`, {
+      const res = await fetch(`${API}/deletar/${id}/`, {
         method: "DELETE",
         headers: {
           "Content-Type": "application/json"
