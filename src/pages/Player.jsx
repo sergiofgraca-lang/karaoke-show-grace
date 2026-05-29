@@ -15,7 +15,7 @@ function Player() {
     import.meta.env.VITE_API_URL &&
     import.meta.env.VITE_API_URL !== "undefined"
       ? import.meta.env.VITE_API_URL
-      : "http://127.0.0.1:8000"
+      : "http://127.0.0.1:8000/api"
 
   useEffect(() => {
     function criarPlayer() {
@@ -84,7 +84,7 @@ function Player() {
     if (!cantor) return
 
     try {
-      const res = await fetch(`${API}/api/salvar/`, {
+      const res = await fetch(`${API}/salvar/`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json"
@@ -113,7 +113,6 @@ function Player() {
       } else {
         alert("Erro ao salvar")
       }
-
     } catch (err) {
       console.error("ERRO:", err)
       alert("Erro servidor")
