@@ -74,6 +74,7 @@ function Player() {
     const audio = new Audio(
       "https://www.myinstants.com/media/sounds/aplausos.mp3"
     )
+
     audio.play().catch(() => {})
   }
 
@@ -95,15 +96,26 @@ function Player() {
         })
       })
 
-      const data = await res.json()
+      const texto = await res.text()
+
+      console.log("STATUS:", res.status)
+      console.log("RESPOSTA:", texto)
+
+      if (!res.ok) {
+        alert("Erro no backend")
+        return
+      }
+
+      const data = JSON.parse(texto)
 
       if (data.status === "ok") {
-        alert("Música salva!")
+        alert("✅ Música salva!")
       } else {
         alert("Erro ao salvar")
       }
+
     } catch (err) {
-      console.error(err)
+      console.error("ERRO:", err)
       alert("Erro servidor")
     }
   }
@@ -119,7 +131,7 @@ function Player() {
       }}
     >
       <button onClick={() => navigate(-1)}>
-  ⬅ Voltar
+        ⬅ Voltar
       </button>
 
       <h2>🎤 {musica}</h2>

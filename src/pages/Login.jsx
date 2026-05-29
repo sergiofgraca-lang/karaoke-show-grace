@@ -6,7 +6,7 @@ function Login() {
   const [senha, setSenha] = useState("")
   const navigate = useNavigate()
 
-  const API = "https://karaoke-show-grace-backend-production.up.railway.app"
+  const API = "https://karaoke-show-grace-backend.vercel.app"
 
   const entrar = async () => {
     try {

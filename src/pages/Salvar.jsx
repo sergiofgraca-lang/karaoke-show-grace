@@ -5,8 +5,7 @@ export default function Salvar() {
   const [videoId, setVideoId] = useState("")
   const [cantor, setCantor] = useState("")
 
-  const API = "https://karaoke-show-grace-backend-production.up.railway.app"
-
+  const API = "https://karaoke-show-grace-backend.vercel.app"
   const salvar = async () => {
     try {
       const res = await fetch(`${API}/api/salvar/`, {
