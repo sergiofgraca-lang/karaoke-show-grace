@@ -10,7 +10,7 @@ function Ranking() {
   useEffect(() => {
     async function carregar() {
       try {
-        const res = await fetch(`${API}/api/ranking/`)
+        const res = await fetch(`${API}/ranking/`)
         const data = await res.json()
         setDados(data)
       } catch (err) {

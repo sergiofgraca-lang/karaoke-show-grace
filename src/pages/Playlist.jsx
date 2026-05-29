@@ -12,7 +12,7 @@ function Playlist() {
 
   const carregarMusicas = async () => {
     try {
-      const res = await fetch(`${API}/api/listar/`)
+      const res = await fetch(`${API}/listar/`)
 
       if (!res.ok) {
         throw new Error("Erro ao buscar músicas")
