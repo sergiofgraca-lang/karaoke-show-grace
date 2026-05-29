@@ -6,21 +6,23 @@ function Login() {
   const [senha, setSenha] = useState("")
   const navigate = useNavigate()
 
-  const API = "https://karaoke-show-grace-backend.vercel.app"
+  const API = import.meta.env.VITE_API_URL
 
   const entrar = async () => {
     try {
-      const res = await fetch(`${API}/api/token/`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({
-          username: usuario,
-          password: senha
-        })
-      })
-
+     const res = await fetch(
+  `${API}/token/`,
+  {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      username,
+      password,
+    }),
+  }
+)
       const data = await res.json()
 
       console.log("STATUS:", res.status)
@@ -42,7 +44,7 @@ function Login() {
   return (
     <div style={container}>
       <div style={card}>
-        <h1 style={titulo}>🎤 Karaoke Show Grace</h1>
+        <h1 style={titulo}>🎤 Karaoke Show Grace New</h1>
         <h2 style={subtitulo}>Conecte-se</h2>
 
         <input
