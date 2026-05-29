@@ -5,31 +5,40 @@ export default function Salvar() {
   const [videoId, setVideoId] = useState("")
   const [cantor, setCantor] = useState("")
 
-  const API = "https://karaoke-show-grace-backend.vercel.app"
+  const API = import.meta.env.VITE_API_URL
+
   const salvar = async () => {
     try {
-      const res = await fetch(`${API}/api/salvar/`, {
+      const token = localStorage.getItem("token")
+
+      const res = await fetch(`${API}/salvar/`, {
         method: "POST",
         headers: {
-          "Content-Type": "application/json"
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({
           titulo,
           videoId,
-          cantor
-        })
+          cantor,
+        }),
       })
 
-      const data = await res.json()
-      console.log(data)
+      console.log("STATUS:", res.status)
 
-      if (data.status === "ok") {
+      const data = await res.json()
+
+      console.log("RESPOSTA:", data)
+
+      if (res.ok) {
         alert("Música salva!")
+
         setTitulo("")
         setVideoId("")
         setCantor("")
+      } else {
+        alert("Erro ao salvar")
       }
-
     } catch (err) {
       console.error(err)
       alert("Erro ao salvar")
@@ -46,17 +55,23 @@ export default function Salvar() {
         onChange={(e) => setTitulo(e.target.value)}
       />
 
+      <br /><br />
+
       <input
         placeholder="Video ID"
         value={videoId}
         onChange={(e) => setVideoId(e.target.value)}
       />
 
+      <br /><br />
+
       <input
         placeholder="Cantor"
         value={cantor}
         onChange={(e) => setCantor(e.target.value)}
       />
+
+      <br /><br />
 
       <button onClick={salvar}>
         Salvar
