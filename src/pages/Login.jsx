@@ -10,19 +10,17 @@ function Login() {
 
   const entrar = async () => {
     try {
-     const res = await fetch(
-  `${API}/token/`,
-  {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      username,
-      password,
-    }),
-  }
-)
+      const res = await fetch(`${API}/token/`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          username: usuario,
+          password: senha,
+        }),
+      })
+
       const data = await res.json()
 
       console.log("STATUS:", res.status)
@@ -34,7 +32,6 @@ function Login() {
       } else {
         alert("Login inválido: " + JSON.stringify(data))
       }
-
     } catch (err) {
       console.error(err)
       alert("Erro ao conectar com servidor")
@@ -78,9 +75,10 @@ const container = {
   justifyContent: "center",
   alignItems: "center",
   height: "100vh",
-  backgroundImage: "url('https://images.unsplash.com/photo-1514525253161-7a46d19cd819')",
+  backgroundImage:
+    "url('https://images.unsplash.com/photo-1514525253161-7a46d19cd819')",
   backgroundSize: "cover",
-  backgroundPosition: "center"
+  backgroundPosition: "center",
 }
 
 const card = {
@@ -88,17 +86,17 @@ const card = {
   padding: "40px",
   borderRadius: "12px",
   textAlign: "center",
-  boxShadow: "0 0 20px rgba(0,0,0,0.5)"
+  boxShadow: "0 0 20px rgba(0,0,0,0.5)",
 }
 
 const titulo = {
   color: "#ff0000",
-  marginBottom: "10px"
+  marginBottom: "10px",
 }
 
 const subtitulo = {
   color: "#fff",
-  marginBottom: "20px"
+  marginBottom: "20px",
 }
 
 const input = {
@@ -108,7 +106,7 @@ const input = {
   margin: "10px auto",
   borderRadius: "8px",
   border: "none",
-  outline: "none"
+  outline: "none",
 }
 
 const botao = {
@@ -118,5 +116,5 @@ const botao = {
   border: "none",
   backgroundColor: "#ff0000",
   color: "#fff",
-  cursor: "pointer"
+  cursor: "pointer",
 }
