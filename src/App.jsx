@@ -1,11 +1,18 @@
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom"
-
 import Home from "./pages/Home"
-import Player from "./pages/Player"
-import Buscar from "./pages/Buscar"
-import Login from "./pages/Login"
 import Playlist from "./pages/Playlist"
-import Ranking from "./pages/Ranking"
+import Player from "./pages/Player"
+import Salvar from "./pages/Salvar"
+
+function App() {
+  return (
+    <Routes>
+      <Route path="/" element={<Home />} />
+      <Route path="/playlist" element={<Playlist />} />
+      <Route path="/player/:videoId" element={<Player />} />
+      <Route path="/salvar" element={<Salvar />} />
+    </Routes>
+  )
+}
 
 
 const estiloApp = {
