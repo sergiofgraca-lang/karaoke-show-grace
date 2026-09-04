@@ -27,109 +27,88 @@ export default function Player() {
   const location = useLocation();
 
   // =========================================================
-  // MÚSICA RECEBIDA (CORREÇÃO ANTI-TELA PRETA)
+  // MÚSICA RECEBIDA (RESOLUÇÃO COMPLETA CONTRA ERRO #31)
   // =========================================================
   const musicaRecebida = location.state?.musica;
 
-  // Garante que 'musica' sempre seja um objeto com 'titulo' e 'videoId' válidos
-  const musica =
+  // 1. Criamos uma constante segura para o ID do Vídeo do YouTube
+  const videoIdMusica = videoId || (typeof musicaRecebida === "object" ? musicaRecebida?.videoId : "");
+
+  // 2. Forçamos a variável 'musica' a ser estritamente uma STRING (Texto)
+  const musica = 
     typeof musicaRecebida === "object" && musicaRecebida !== null
-      ? musicaRecebida
-      : {
-          titulo: typeof musicaRecebida === "string" ? musicaRecebida : "Karaokê",
-          videoId: videoId
-        };
+      ? musicaRecebida.titulo || "Karaokê"
+      : typeof musicaRecebida === "string" 
+        ? musicaRecebida 
+        : "Karaokê";
 
   // =========================================================
   // API
   // =========================================================
+  const API =
+    import.meta.env.VITE_API_URL ||
+    "https://vercel.app";
+
   // =========================================================
   // REFS
   // =========================================================
-
   const playerRef = useRef(null);
   const youtubeRef = useRef(null);
-
   const audioRef = useRef(null);
   const pitchRef = useRef(null);
-
   const sincronizacaoRef = useRef(null);
-
   const youtubeTocandoRef = useRef(false);
-
   const audioStartTimeRef = useRef(null);
   const audioOffsetRef = useRef(0);
   const audioDurationRef = useRef(0);
-
   const youtubeApiCarregadaRef = useRef(false);
+  const audioPreparandoRef = useRef(false); // Adicionado para controle do fluxo
 
   // =========================================================
   // STATES
   // =========================================================
-
   const [audioPronto, setAudioPronto] = useState(false);
   const [audioCarregando, setAudioCarregando] = useState(true);
-
   const [erroAudio, setErroAudio] = useState("");
-
   const [audioNome, setAudioNome] = useState("");
-
   const [tomAtual, setTomAtual] = useState(0);
-
   const [tocando, setTocando] = useState(false);
-
   const [resultado, setResultado] = useState(null);
 
   // =========================================================
   // LIMPAR ÁUDIO
   // =========================================================
-
   function limparAudio() {
     console.log("🧹 Limpando áudio Tone.js...");
-
     if (sincronizacaoRef.current) {
       clearInterval(sincronizacaoRef.current);
       sincronizacaoRef.current = null;
     }
-
     if (audioRef.current) {
-      try {
-        audioRef.current.stop();
-      } catch {}
-
-      try {
-        audioRef.current.dispose();
-      } catch {}
-
+      try { audioRef.current.stop(); } catch {}
+      try { audioRef.current.dispose(); } catch {}
       audioRef.current = null;
     }
-
     if (pitchRef.current) {
-      try {
-        pitchRef.current.dispose();
-      } catch {}
-
+      try { pitchRef.current.dispose(); } catch {}
       pitchRef.current = null;
     }
-
     audioStartTimeRef.current = null;
     audioOffsetRef.current = 0;
     audioDurationRef.current = 0;
-
     setAudioPronto(false);
   }
 
   // =========================================================
-  // PREPARAR ÁUDIO
+  // PREPARAR ÁUDIO (ATUALIZADO COM VIDEOIDMUSICA)
   // =========================================================
-
   useEffect(() => {
     let ativo = true;
 
     async function prepararAudio() {
       try {
         console.log("🎵 Preparando Tone.js...");
-        console.log("🔎 Procurando áudio associado ao videoId:", videoId);
+        console.log("🔎 Procurando áudio associado ao videoId:", videoIdMusica);
 
         setAudioPronto(false);
         setAudioCarregando(true);
@@ -138,34 +117,25 @@ export default function Player() {
 
         limparAudio();
 
-        // -----------------------------------------------------
-        // BUSCAR ÁUDIO NO DJANGO (TRATADO COM TRY/CATCH)
-        // -----------------------------------------------------
         let dados = {};
         try {
-          const resposta = await fetch(`${API}/audio/${videoId}/`);
+          // Usa videoIdMusica para buscar a associação no Django
+          const resposta = await fetch(`${API}/audio/${videoIdMusica}/`);
           if (resposta.ok) {
             dados = await resposta.json();
             console.log("🎯 Resposta do Django:", dados);
           }
         } catch (fetchErr) {
-          console.log("⚠️ Rota de associação do Django offline ou não encontrada. Usando stream direto.");
+          console.log("⚠️ Rota de associação indisponível. Usando stream direto.");
         }
 
         if (!ativo) return;
 
-        // -----------------------------------------------------
-        // DESCOBRIR URL DO ÁUDIO
-        // -----------------------------------------------------
-
         let finalAudioURL = "";
-        let nomeDoAudio = `${videoId}.mp3`;
+        let nomeDoAudio = `${videoIdMusica}.mp3`;
 
         if (dados.url) {
-          if (
-            dados.url.startsWith("http://") ||
-            dados.url.startsWith("https://")
-          ) {
+          if (dados.url.startsWith("http://") || dados.url.startsWith("https://")) {
             finalAudioURL = dados.url;
           } else {
             finalAudioURL = new URL(dados.url, `${API}/`).href;
@@ -173,10 +143,7 @@ export default function Player() {
         }
 
         if (!finalAudioURL && dados.audio) {
-          if (
-            dados.audio.startsWith("http://") ||
-            dados.audio.startsWith("https://")
-          ) {
+          if (dados.audio.startsWith("http://") || dados.audio.startsWith("https://")) {
             finalAudioURL = dados.audio;
           } else {
             finalAudioURL = new URL(dados.audio, `${API}/`).href;
@@ -187,23 +154,16 @@ export default function Player() {
           nomeDoAudio = dados.audio;
         }
 
-        // -----------------------------------------------------
-        // ATIVAÇÃO DO FALLBACK DO GOOGLE/STREAM PARA A NUVEM
-        // -----------------------------------------------------
+        // Fallback robusto para produção serverless
         if (!finalAudioURL) {
-          finalAudioURL = `https://vevioz.com{videoId}`;
-          console.log("🚀 Fallback ativado: Streaming direto da nuvem configurado.");
+          finalAudioURL = `https://vevioz.com{videoIdMusica}`;
+          console.log("🚀 Fallback ativado: Streaming direto configurado.");
         }
 
         console.log("🎵 URL final do áudio:", finalAudioURL);
         setAudioNome(nomeDoAudio);
 
-        // -----------------------------------------------------
-        // INICIAR TONE
-        // -----------------------------------------------------
-
         console.log("🔊 Criando PitchShift...");
-
         const pitchShift = new Tone.PitchShift({
           pitch: tomAtual,
           windowSize: 0.1,
@@ -218,9 +178,6 @@ export default function Player() {
 
         pitchRef.current = pitchShift;
 
-        // -----------------------------------------------------
-        // CRIAÇÃO E CARREGAMENTO DO PLAYER
-        // -----------------------------------------------------
         console.log("🔊 Inicializando buffer do Tone.Player...");
         const player = new Tone.Player({
           url: finalAudioURL,
@@ -255,7 +212,9 @@ export default function Player() {
     return () => {
       ativo = false;
     };
-  }, [videoId, tomAtual]);
+  }, [videoIdMusica, tomAtual]); // Atualizado para vigiar videoIdMusica
+
+  // O restante do seu arquivo (reprodução, player do youtube e layout JSX) continua normal daqui para baixo...
 
   // =========================================================
   // INICIAR ÁUDIO
