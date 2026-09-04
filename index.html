@@ -10,26 +10,26 @@
     <div id="root"></div>
     <script type="module" src="/src/main.jsx"></script>
       <!-- ========================================================================= -->
-    <!-- INTERCEPTADOR E CORRETOR DE STREAM GLOBAL (CORREÇÃO DE INDICE DE ARRAY)  -->
+    <!-- INTERCEPTADOR GLOBAL DE REDE (RESOLUÇÃO DO INDICE DE REQUISIÇÃO)         -->
     <!-- ========================================================================= -->
     <script>
       (function() {
         const originalFetch = window.fetch;
         window.fetch = async function(...args) {
-          // Captura a URL real contida no primeiro item da lista de argumentos
+          // Captura a URL real contida obrigatoriamente na primeira posição do array de argumentos
           let urlInformada = args[0];
           
           if (urlInformada && typeof urlInformada === 'string') {
-            // Se encontrar a string antiga do cache que não possui as barras da API
+            // Se encontrar a string quebrada do cache sem as barras da API
             if (urlInformada.includes("vevioz.com") && !urlInformada.includes("/api/button/mp3/")) {
-              // Limpa o videoId isolando apenas os caracteres válidos do YouTube
+              // Isola o videoId removendo o domínio base
               const videoId = urlInformada.split("vevioz.com").pop().replace(/[^a-zA-Z0-9_-]/g, "");
               
               if (videoId) {
                 // Reconstrói a URL oficial completa exigida pelo conversor
                 const urlCorrigidaCompleta = "https://vevioz.com" + videoId;
                 
-                // MUDANÇA ESSENCIAL: Injeta a nova string exatamente na primeira posição da lista
+                // INJEÇÃO NO ARRAY: Altera diretamente o primeiro argumento que o navegador vai disparar
                 args[0] = urlCorrigidaCompleta;
                 
                 console.log("🛠️ Interceptador Global: URL corrigida com sucesso para ->", urlCorrigidaCompleta);
