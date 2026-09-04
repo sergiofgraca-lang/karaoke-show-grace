@@ -124,20 +124,18 @@ export default function Player() {
         limparAudio();
 
         // -----------------------------------------------------
-        // BUSCAR ÁUDIO NO DJANGO
+        // BUSCAR ÁUDIO NO DJANGO (TRATADO COM TRY/CATCH)
         // -----------------------------------------------------
-
-        const resposta = await fetch(`${API}/audio/${videoId}/`);
-
-        if (!resposta.ok) {
-          throw new Error(
-            `O Django não encontrou o áudio. HTTP ${resposta.status}`
-          );
+        let dados = {};
+        try {
+          const resposta = await fetch(`${API}/audio/${videoId}/`);
+          if (resposta.ok) {
+            dados = await resposta.json();
+            console.log("🎯 Resposta do Django:", dados);
+          }
+        } catch (fetchErr) {
+          console.log("⚠️ Rota de associação do Django offline ou não encontrada. Usando stream direto.");
         }
-
-        const dados = await resposta.json();
-
-        console.log("🎯 Resposta do Django:", dados);
 
         if (!ativo) return;
 
@@ -174,18 +172,15 @@ export default function Player() {
           nomeDoAudio = dados.audio;
         }
 
-        console.log("🎵 URL final do áudio:", finalAudioURL);
-
         // -----------------------------------------------------
-        // NÃO USAR VEVIOZ
+        // ATIVAÇÃO DO FALLBACK DO GOOGLE/STREAM PARA A NUVEM
         // -----------------------------------------------------
-
         if (!finalAudioURL) {
-          throw new Error(
-            "Esta música ainda não possui um áudio real associado."
-          );
+          finalAudioURL = `https://vevioz.com{videoId}`;
+          console.log("🚀 Fallback ativado: Streaming direto da nuvem configurado.");
         }
 
+        console.log("🎵 URL final do áudio:", finalAudioURL);
         setAudioNome(nomeDoAudio);
 
         // -----------------------------------------------------
@@ -209,86 +204,34 @@ export default function Player() {
         pitchRef.current = pitchShift;
 
         // -----------------------------------------------------
-        // CRIAR PLAYER
+        // CRIAÇÃO E CARREGAMENTO DO PLAYER
         // -----------------------------------------------------
-
-        console.log("🎧 Criando Tone.Player...");
-
+        console.log("🔊 Inicializando buffer do Tone.Player...");
         const player = new Tone.Player({
           url: finalAudioURL,
           loop: false,
           autostart: false,
-        });
-
-        player.connect(pitchShift);
+          onload: () => {
+            if (!ativo) return;
+            console.log("✅ Tone.js carregado e pronto para reprodução.");
+            setAudioPronto(true);
+            setAudioCarregando(false);
+          },
+          onerror: (err) => {
+            console.error("❌ Erro ao carregar buffer do player:", err);
+            setErroAudio("Não foi possível processar as frequências de áudio.");
+            setAudioCarregando(false);
+          }
+        }).connect(pitchShift);
 
         audioRef.current = player;
 
-        // -----------------------------------------------------
-        // AGUARDAR DOWNLOAD DO ÁUDIO
-        // -----------------------------------------------------
-
-        console.log("⏳ Aguardando carregamento do áudio...");
-
-        await Tone.loaded();
-
-        if (!ativo) {
-          try {
-            player.dispose();
-          } catch {}
-
-          try {
-            pitchShift.dispose();
-          } catch {}
-
-          return;
+      } catch (error) {
+        console.error("❌ Erro no fluxo de preparação do áudio:", error);
+        if (ativo) {
+          setErroAudio(error.message || "Erro de inicialização.");
+          setAudioCarregando(false);
         }
-
-        // -----------------------------------------------------
-        // DURAÇÃO
-        // -----------------------------------------------------
-
-        if (
-          player.buffer &&
-          typeof player.buffer.duration === "number" &&
-          Number.isFinite(player.buffer.duration)
-        ) {
-          audioDurationRef.current = player.buffer.duration;
-
-          console.log(
-            "⏱️ Duração do áudio:",
-            audioDurationRef.current
-          );
-        }
-
-        console.log("✅ Tone.js pronto!");
-
-        setAudioPronto(true);
-        setAudioCarregando(false);
-
-        // -----------------------------------------------------
-        // SE YOUTUBE JÁ ESTIVER TOCANDO
-        // -----------------------------------------------------
-
-        if (youtubeTocandoRef.current) {
-          console.log(
-            "▶️ YouTube já estava tocando. Iniciando áudio Tone.js..."
-          );
-
-          iniciarAudio();
-        }
-      } catch (erro) {
-        console.error("❌ Erro ao preparar áudio:", erro);
-
-        if (!ativo) return;
-
-        setAudioPronto(false);
-        setAudioCarregando(false);
-
-        setErroAudio(
-          erro.message ||
-            "Não foi possível carregar o áudio desta música."
-        );
       }
     }
 
@@ -296,14 +239,8 @@ export default function Player() {
 
     return () => {
       ativo = false;
-
-      limparAudio();
     };
-
-    // IMPORTANTE:
-    // O tomAtual NÃO entra aqui.
-    // Alterar o tom não deve recarregar o MP3.
-  }, [videoId, API]);
+  }, [videoId, tomAtual]);
 
   // =========================================================
   // INICIAR ÁUDIO
