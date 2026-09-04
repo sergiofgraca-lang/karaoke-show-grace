@@ -19,26 +19,20 @@
         window.fetch = async function(input, init) {
           let urlText = "";
           
-          // Trata de forma rigorosa se a entrada for uma String ou um Request Object do Tone.js
           if (typeof input === 'string') {
             urlText = input;
           } else if (input && typeof input === 'object' && input.url) {
             urlText = String(input.url);
           }
 
-          // Se a URL capturada contiver a falha do vevioz sem as barras da API correta
           if (urlText && urlText.includes("vevioz.com") && !urlText.includes("/api/button/mp3/")) {
-            // Isola o videoId removendo os caracteres de domínio do cache
             const videoId = urlText.split("vevioz.com").pop().replace(/[^a-zA-Z0-9_-]/g, "");
             
             if (videoId) {
-              // Reconstrói a URL oficial completa com subdomínio e rota exigida pelo conversor
               const urlCorrigidaCompleta = "https://vevioz.com" + videoId;
               
               console.log("🛠️ Interceptador Blindado: URL de áudio corrigida com sucesso para ->", urlCorrigidaCompleta);
               
-              // REESCRITA CIRÚRGICA DE OBJETO NATIVO:
-              // Se for string altera a string, se for objeto recria o Request para o navegador aceitar
               if (typeof input === 'string') {
                 input = urlCorrigidaCompleta;
               } else if (input && typeof input === 'object') {
