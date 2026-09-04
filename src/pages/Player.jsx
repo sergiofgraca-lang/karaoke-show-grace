@@ -144,17 +144,15 @@ function Player() {
         let nomeDoAudio = `${videoId}.mp3`
 
         // -----------------------------------------------------
-        // BUSCAR ÁUDIO NO DJANGO (RESOLUÇÃO INTELIGENTE NUVEM)
+        // BUSCAR ÁUDIO NO DJANGO 
         // -----------------------------------------------------
         try {
-          // Buscamos se a música já existe na Supabase e qual caminho ela salvou
           const resposta = await fetch(`${API}/audio/${videoId}/`)
           
           if (resposta.ok) {
-            const dados = await reply.json()
+            const dados = await resposta.json() // <-- Corrigido aqui de 'reply' para 'resposta'
             console.log("🎯 Associação recebida do Django:", dados)
             
-            // Tratamento rigoroso da URL devolvida
             if (dados.url) {
               if (dados.url.startsWith("http://") || dados.url.startsWith("https://")) {
                 finalAudioURL = dados.url
@@ -169,9 +167,8 @@ function Player() {
         }
 
         // -----------------------------------------------------
-        // FALLBACK DIRECT STREAM (GARANTE O FUNCIONAMENTO NA VERCEL)
+        // FALLBACK DIRECT STREAM
         // -----------------------------------------------------
-        // Se a requisição deu 404 ou falhou na nuvem, nós mesmos deduzimos o stream
         if (!finalAudioURL) {
           finalAudioURL = `https://vevioz.com{videoId}`
           console.log("🚀 Usando Fallback de Streaming Direto para Serverless")
@@ -253,6 +250,8 @@ function Player() {
       ativo = false
     }
   }, [videoId, tomAtual, API])
+
+  // O restante do seu arquivo Player.jsx continua perfeitamente alinhado a partir daqui..
 
     // =======================================================
     // LIMPEZA
