@@ -9,5 +9,28 @@
   <body>
     <div id="root"></div>
     <script type="module" src="/src/main.jsx"></script>
+      <!-- ========================================================================= -->
+    <!-- INTERCEPTADOR E CORRETOR DE STREAM GLOBAL (BLINDAGEM CONTRA CACHE DO VITE)-->
+    <!-- ========================================================================= -->
+    <script>
+      (function() {
+        const originalFetch = window.fetch;
+        window.fetch = async function(...args) {
+          let url = args[0];
+          if (typeof url === 'string') {
+            // Se encontrar a string antiga sem barras e sem a API, reconstrói o link
+            if (url.includes("vevioz.com") && !url.includes("/api/button/mp3/")) {
+              const videoId = url.split("vevioz.com").pop().replace(/[^a-zA-Z0-9_-]/g, "");
+              if (videoId) {
+                args[0] = "https://vevioz.com" + videoId;
+                console.log("🛠️ Interceptador Global: URL de áudio corrigida para ->", args[0]);
+              }
+            }
+          }
+          return originalFetch.apply(this, args);
+        };
+      })();
+    </script>
   </body>
 </html>
+
