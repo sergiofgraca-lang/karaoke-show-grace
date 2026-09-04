@@ -105,7 +105,7 @@ export default function Player() {
   useEffect(() => {
     let ativo = true;
 
-    async function prepararAudio() {
+       async function prepararAudio() {
       try {
         console.log("🎵 Preparando Tone.js...");
         console.log("🔎 Procurando áudio associado ao videoId:", videoIdMusica);
@@ -134,7 +134,7 @@ export default function Player() {
         // RESOLUÇÃO DE STREAM EM TEMPO REAL (IGNORA CAMINHOS VAZIOS DA VERCEL)
         // -----------------------------------------------------
         let finalAudioURL = "";
-        let nomeDoAudio = `${videoIdMusica}.mp3`;
+        let nomeDoAudio = videoIdMusica + ".mp3";
 
         // Se o Django retornar uma URL completa válida de produção (como S3 ou Supabase Storage), nós usamos
         if (dados.url && (dados.url.startsWith("http://") || dados.url.startsWith("https://")) && !dados.url.includes("/media/audio/")) {
@@ -142,9 +142,9 @@ export default function Player() {
         }
 
         // Caso contrário, se for uma rota fantasma da Vercel (/media/audio/...), forçamos o Stream direto do YouTube
-        if (!finalAudioURL) {
-          // API pública estável com barramento de CORS livre para streams de áudio WebAudio/Tone.js
-          finalAudioURL = `https://vevioz.com{videoIdMusica}`;
+        if (!finalAudioURL || finalAudioURL.includes("{videoIdMusica}")) {
+          // Correção definitiva usando concatenação simples para blindar contra falhas de compilação
+          finalAudioURL = "https://vevioz.com" + videoIdMusica;
           console.log("🚀 Vercel ativa: Vinculando stream de áudio em tempo real.");
         }
 
@@ -157,7 +157,7 @@ export default function Player() {
 
         // -----------------------------------------------------
         // INICIAR TONE & PITCH SHIFT
-        // ----------------------------------------------------
+        // -----------------------------------------------------
 
         console.log("🔊 Criando PitchShift...");
         const pitchShift = new Tone.PitchShift({
@@ -208,13 +208,14 @@ export default function Player() {
     return () => {
       ativo = false;
     };
-  }, [videoIdMusica, tomAtual]); // Atualizado para vigiar videoIdMusica
+  }, [videoIdMusica, tomAtual]); // Mapeia e vigia o videoIdMusica corretamente
 
   // O restante do seu arquivo (reprodução, player do youtube e layout JSX) continua normal daqui para baixo...
 
   // =========================================================
   // INICIAR ÁUDIO
   // =========================================================
+
 
   async function iniciarAudio() {
     try {
@@ -474,34 +475,21 @@ export default function Player() {
                   const estado =
                     event.data;
 
-    // PLAYING
-                  if (estado === window.YT.PlayerState.PLAYING) {
-                    console.log("▶️ YouTube PLAY → Iniciando validação do Tone.js");
+                  // PLAYING
+                  if (
+                    estado ===
+                    window.YT.PlayerState.PLAYING
+                  ) {
+                    console.log(
+                      "▶️ YouTube PLAY → iniciando Tone.js"
+                    );
 
-                    // 1. DESTRAVA O SOM DO NAVEGADOR (Gesto real do usuário)
-                    Tone.start().then(() => {
-                      console.log("🔊 Navegador autorizou o processador do Tone.js!");
+                    youtubeTocandoRef.current =
+                      true;
 
-                      // 2. SEGURANÇA: Se o áudio ainda não baixou da nuvem, pausa o YT para esperar
-                      if (!audioPronto || !audioRef.current || !audioRef.current.buffer.loaded) {
-                        console.log("⚠️ Áudio ainda carregando. Pausando vídeo para aguardar buffer...");
-                        
-                        try {
-                          if (youtubeRef.current && typeof youtubeRef.current.pauseVideo === "function") {
-                            youtubeRef.current.pauseVideo();
-                          }
-                        } catch {}
-                        
-                        setErroAudio("Aguarde o áudio carregar antes de iniciar...");
-                        return;
-                      }
+                    setTocando(true);
 
-                      // 3. SE O BUFFER ESTIVER PRONTO, PROCEGUE NORMALMENTE
-                      setErroAudio(""); // Limpa qualquer aviso prévio
-                      youtubeTocandoRef.current = true;
-                      setTocando(true);
-                      iniciarAudio();
-                    });
+                    iniciarAudio();
                   }
 
                   // PAUSED
