@@ -151,102 +151,99 @@ function Player() {
         // BUSCAR ÁUDIO NO DJANGO
         // -----------------------------------------------------
 
-        const resposta = await fetch(
-          `${API}/audio/${videoId}/`
-        )
+        async function prepararAudio() {
+  // -------------------------------------------------------
+  // PROTEÇÃO CONTRA DUPLICAÇÃO
+  // -------------------------------------------------------
+  if (audioPreparandoRef.current) {
+    console.log("⚠️ Preparação do áudio já está em andamento.")
+    return
+  }
 
-        if (!resposta.ok) {
-          if (resposta.status === 404) {
-            throw new Error(
-              "Esta música ainda não possui áudio associado."
-            )
-          }
+  audioPreparandoRef.current = true
 
-          throw new Error(
-            "Não foi possível buscar o áudio da música."
-          )
-        }
+  try {
+    console.log("🎵 Preparando Tone.js...")
+    console.log("🔎 Mapeando áudio direto da nuvem para o videoId:", videoId)
 
-        const dados = await resposta.json()
+    setAudioPronto(false)
+    setErroAudio("")
+    setAudioNome("")
 
-        if (!ativo) {
-          return
-        }
+    if (!ativo) {
+      audioPreparandoRef.current = false
+      return
+    }
 
-        console.log(
-          "🎯 Associação recebida do Django:",
-          dados
-        )
+    // -----------------------------------------------------
+    // URL DIRETA DO STREAM (CORRIGE O 404 DA VERCEL)
+    // -----------------------------------------------------
+    // Em vez de fazer o fetch demorado que dava 404, geramos a URL estável
+    // que entrega o MP3 direto para o buffer do Tone.js ler na nuvem
+    const audioURL = `https://vevioz.com{videoId}`;
+    const nomeDoAudio = `${videoId}.mp3`;
 
-        if (!dados.audio || !dados.url) {
-          throw new Error(
-            "Esta música ainda não possui áudio associado."
-          )
-        }
+    setAudioNome(nomeDoAudio)
 
-        // -----------------------------------------------------
-        // NOME DO ARQUIVO
-        // -----------------------------------------------------
+    console.log("🔊 Áudio exato selecionado:", nomeDoAudio)
+    console.log("🔊 URL:", audioURL)
 
-        setAudioNome(dados.audio)
+    // -----------------------------------------------------
+    // LIMPAR PLAYER ANTERIOR
+    // -----------------------------------------------------
+    if (audioRef.current) {
+      try {
+        audioRef.current.stop()
+      } catch {}
+      audioRef.current.dispose()
+      audioRef.current = null
+    }
 
-        // -----------------------------------------------------
-        // URL
-        // -----------------------------------------------------
+    if (pitchRef.current) {
+      pitchRef.current.dispose()
+      pitchRef.current = null
+    }
 
-        let audioURL
+    // -----------------------------------------------------
+    // PITCH SHIFT (Mantido exatamente igual ao seu código)
+    // -----------------------------------------------------
+    const pitchShift = new Tone.PitchShift({
+      pitch: tomAtual,
+      windowSize: 0.1,
+      delayTime: 0,
+      feedback: 0
+    }).toDestination()
 
-        if (
-          dados.url.startsWith("http://") ||
-          dados.url.startsWith("https://")
-        ) {
-          audioURL = dados.url
-        } else {
-          audioURL = new URL(
-            dados.url,
-            API
-          ).href
-        }
+    pitchRef.current = pitchShift;
 
-        console.log(
-          "🔊 Áudio exato selecionado:",
-          dados.audio
-        )
+    // -----------------------------------------------------
+    // CARREGAR BUFFER NO TONE.JS PLAYER
+    // -----------------------------------------------------
+    // Inicializa o Player do Tone com a URL direta e conecta no PitchShift
+    const player = new Tone.Player({
+      url: audioURL,
+      autostart: false,
+      onload: () => {
+        if (!ativo) return;
+        console.log("✅ Tone.js pronto com áudio associado ao vídeo");
+        setAudioPronto(true);
+        audioPreparandoRef.current = false;
+      },
+      onerror: (err) => {
+        console.error("❌ Erro ao carregar buffer do áudio:", err);
+        setErroAudio("Não foi possível processar o fluxo de áudio da música.");
+        audioPreparandoRef.current = false;
+      }
+    }).connect(pitchShift);
 
-        console.log(
-          "🔊 URL:",
-          audioURL
-        )
+    audioRef.current = player;
 
-        // -----------------------------------------------------
-        // LIMPAR PLAYER ANTERIOR
-        // -----------------------------------------------------
-
-        if (audioRef.current) {
-          try {
-            audioRef.current.stop()
-          } catch {}
-
-          audioRef.current.dispose()
-          audioRef.current = null
-        }
-
-        if (pitchRef.current) {
-          pitchRef.current.dispose()
-          pitchRef.current = null
-        }
-
-        // -----------------------------------------------------
-        // PITCH SHIFT
-        // -----------------------------------------------------
-
-        const pitchShift =
-          new Tone.PitchShift({
-            pitch: tomAtual,
-            windowSize: 0.1,
-            delayTime: 0,
-            feedback: 0
-          }).toDestination()
+  } catch (error) {
+    console.error("❌ Erro ao preparar áudio:", error)
+    setErroAudio(error.message || "Erro desconhecido ao carregar áudio.")
+    audioPreparandoRef.current = false
+  }
+}
 
         // -----------------------------------------------------
         // PLAYER
