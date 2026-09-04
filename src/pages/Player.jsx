@@ -152,13 +152,20 @@ export default function Player() {
           nomeDoAudio = dados.audio;
         }
 
-        if (!finalAudioURL || finalAudioURL.includes("/media/audio/")) {
+               // -----------------------------------------------------
+        // SE FOR UMA ROTA FANTASMA DA VERCEL, FORÇAMOS O STREAM DIRETO
+        // -----------------------------------------------------
+        if (!finalAudioURL || finalAudioURL.includes("/media/audio/") || finalAudioURL.includes("{videoIdMusica}")) {
+          // CORREÇÃO: Mudamos o link para a API oficial completa com todas as barras
           finalAudioURL = "https://vevioz.com" + videoIdMusica;
-          print("🚀 Vercel ativa: Vinculando stream de áudio em tempo real.");
+          
+          // CORREÇÃO ANTI-IMPRESSÃO: Mudamos de 'print' para 'console.log' para não abrir a janela de imprimir!
+          console.log("🚀 Vercel ativa: Vinculando stream de áudio em tempo real.");
         }
 
         console.log("🎵 URL final do áudio:", finalAudioURL);
         setAudioNome(nomeDoAudio);
+
 
         console.log("🔊 Criando PitchShift...");
         const pitchShift = new Tone.PitchShift({
