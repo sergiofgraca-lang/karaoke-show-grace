@@ -142,9 +142,10 @@ export default function Player() {
         }
 
         // Caso contrário, se for uma rota fantasma da Vercel (/media/audio/...), forçamos o Stream direto do YouTube
-        if (!finalAudioURL) {
-          // API pública estável com barramento de CORS livre para streams de áudio WebAudio/Tone.js
+        if (!finalAudioURL || finalAudioURL.includes("/media/audio/")) {
+          // ATENÇÃO: Use obrigatoriamente CRASES (botão ao lado do P ou SHIFT + acento agudo) e NÃO aspas simples!
           finalAudioURL = `https://vevioz.com{videoIdMusica}`;
+          
           console.log("🚀 Vercel ativa: Vinculando stream de áudio em tempo real.");
         }
 
