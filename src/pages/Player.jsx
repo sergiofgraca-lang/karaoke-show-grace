@@ -1,7 +1,178 @@
+async function executarPreparoAudioExterno(videoId, API, tomAtual, ativo, callbacks) {
+  try {
+    console.log("🎵 Preparando Tone.js...");
+    console.log("🔎 Procurando áudio associado ao videoId:", videoId);
+
+    callbacks.setAudioPronto(false);
+    callbacks.setErroAudio("");
+    callbacks.setAudioNome("");
+
+    let finalAudioURL = "";
+    let nomeDoAudio = `${videoId}.mp3`;
+
+    // Tenta buscar no Django
+    try {
+      const resposta = await fetch(`${API}/audio/${videoId}/`);
+      if (resposta.ok) {
+        const dados = await resposta.json();
+        console.log("🎯 Associação recebida do Django:", dados);
+        if (dados.url) {
+          if (dados.url.startsWith("http://") || dados.url.startsWith("https://")) {
+            finalAudioURL = dados.url;
+          } else {
+            finalAudioURL = new URL(dados.url, API).href;
+          }
+          if (dados.audio) nomeDoAudio = dados.audio;
+        }
+      }
+    } catch (err) {
+      console.log("⚠️ Rota de áudio direta indisponível. Usando fallback.");
+    }
+
+    // Fallback dinâmico para Vercel
+    if (!finalAudioURL) {
+      finalAudioURL = `https://vevioz.com{videoId}`;
+      console.log("🚀 Usando Fallback de Streaming Direto");
+    }
+
+    if (!ativo) return;
+
+    callbacks.setAudioNome(nomeDoAudio);
+
+    // Limpeza dos nós do Tone.js antigos passando as referências pelas pontes
+    if (callbacks.audioRef.current) {
+      try { callbacks.audioRef.current.stop(); } catch {}
+      callbacks.audioRef.current.dispose();
+      callbacks.audioRef.current = null;
+    }
+
+    if (callbacks.pitchRef.current) {
+      callbacks.pitchRef.current.dispose();
+      callbacks.pitchRef.current = null;
+    }
+
+    // Inicialização do Pitch Shift
+    const pitchShift = new Tone.PitchShift({
+      pitch: tomAtual,
+      windowSize: 0.1,
+      delayTime: 0,
+      feedback: 0
+    }).toDestination();
+
+    callbacks.pitchRef.current = pitchShift;
+
+    // Inicialização do Player
+    const player = new Tone.Player({
+      url: finalAudioURL,
+      loop: false,
+      autostart: false
+    });
+
+    player.connect(pitchShift);
+    callbacks.audioRef.current = player;
+
+    // Carregamento de buffer
+    await Tone.loaded();
+
+    if (!ativo) {
+      player.dispose();
+      pitchShift.dispose();
+      return;
+    }
+
+    console.log("✅ Tone.js pronto com áudio associado ao vídeo");
+    callbacks.setAudioPronto(true);
+
+  } catch (error) {
+    console.error("❌ Erro ao preparar áudio:", error);
+    if (ativo) {
+      callbacks.setErroAudio(error.message || "Erro ao carregar o fluxo.");
+    }
+  }
+}
+
+// =========================================================================
+// INÍCIO DO SEU COMPONENTE ORIGINAL
+// =========================================================================
+function Player() {}
+  const navigate = useNavigate()
+  const { videoId } = useParams()
+  const location = useLocation()
+
+  const musicaRecebida = location.state?.musica
+  const musica =
+    typeof musicaRecebida === "object"
+      ? musicaRecebida
+      : { titulo: musicaRecebida || "Karaokê", videoId }
+
+  const API =
+    import.meta.env.VITE_API_URL &&
+    import.meta.env.VITE_API_URL !== "undefined"
+      ? import.meta.env.VITE_API_URL
+      : "http://127.0.0.1:8000"
+
+  const playerRef = useRef(null)
+  const audioRef = useRef(null)
+  const pitchRef = useRef(null)
+
+  const audioOffsetRef = useRef(0)
+  const audioStartTimeRef = useRef(null)
+  const audioDurationRef = useRef(0)
+  const sincronizacaoRef = useRef(null)
+
+  const audioInicializandoRef = useRef(false)
+  const audioPreparandoRef = useRef(false)
+  const youtubeCriadoRef = useRef(false)
+  const youtubeTocandoRef = useRef(false)
+
+  const [audioPronto, setAudioPronto] = useState(false)
+  const [tocando, setTocando] = useState(false)
+  const [audioNome, setAudioNome] = useState("")
+  const [erroAudio, setErroAudio] = useState("")
+  const [resultado, setResultado] = useState(null)
+
+  const tons = ["C","C#","D","D#","E","F","F#","G","G#","A","A#","B"]
+  const tomOriginal = 0
+  const [tomAtual, setTomAtual] = useState(0)
+
+  function obterTempoYouTube() {
+    const youtube = playerRef.current
+    if (!youtube || typeof youtube.getCurrentTime !== "function") return null
+    try {
+      const tempo = youtube.getCurrentTime()
+      return (!Number.isFinite(tempo) || tempo < 0) ? null : tempo
+    } catch { return null }
+  }
+
+  // =========================================================
+  // GATILHO COMPACTO ATUALIZADO (EVITA ANINHAMENTOS QUEBRADOS)
+  // =========================================================
+  useEffect(() => {
+    let ativo = true;
+
+    if (audioPreparandoRef.current) return;
+    audioPreparandoRef.current = true;
+
+    // Passamos todos os estados e referências dentro de um objeto mapeado de callbacks
+    const callbacks = {
+      setAudioPronto, setErroAudio, setAudioNome, audioRef, pitchRef
+    };
+
+    executarPreparoAudioExterno(videoId, API, tomAtual, ativo, callbacks).then(() => {
+      audioPreparandoRef.current = false;
+    });
+
+    return () => {
+      ativo = false;
+    };
+  }, [videoId, tomAtual, API]);
+
 function Player() {
   const navigate = useNavigate()
   const { videoId } = useParams()
   const location = useLocation()
+
+  
 
   // =========================================================
   // MÚSICA RECEBIDA
