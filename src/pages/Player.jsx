@@ -474,21 +474,34 @@ export default function Player() {
                   const estado =
                     event.data;
 
-                  // PLAYING
-                  if (
-                    estado ===
-                    window.YT.PlayerState.PLAYING
-                  ) {
-                    console.log(
-                      "▶️ YouTube PLAY → iniciando Tone.js"
-                    );
+    // PLAYING
+                  if (estado === window.YT.PlayerState.PLAYING) {
+                    console.log("▶️ YouTube PLAY → Iniciando validação do Tone.js");
 
-                    youtubeTocandoRef.current =
-                      true;
+                    // 1. DESTRAVA O SOM DO NAVEGADOR (Gesto real do usuário)
+                    Tone.start().then(() => {
+                      console.log("🔊 Navegador autorizou o processador do Tone.js!");
 
-                    setTocando(true);
+                      // 2. SEGURANÇA: Se o áudio ainda não baixou da nuvem, pausa o YT para esperar
+                      if (!audioPronto || !audioRef.current || !audioRef.current.buffer.loaded) {
+                        console.log("⚠️ Áudio ainda carregando. Pausando vídeo para aguardar buffer...");
+                        
+                        try {
+                          if (youtubeRef.current && typeof youtubeRef.current.pauseVideo === "function") {
+                            youtubeRef.current.pauseVideo();
+                          }
+                        } catch {}
+                        
+                        setErroAudio("Aguarde o áudio carregar antes de iniciar...");
+                        return;
+                      }
 
-                    iniciarAudio();
+                      // 3. SE O BUFFER ESTIVER PRONTO, PROCEGUE NORMALMENTE
+                      setErroAudio(""); // Limpa qualquer aviso prévio
+                      youtubeTocandoRef.current = true;
+                      setTocando(true);
+                      iniciarAudio();
+                    });
                   }
 
                   // PAUSED
