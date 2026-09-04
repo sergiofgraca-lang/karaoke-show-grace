@@ -1,561 +1,369 @@
-async function executarPreparoAudioExterno(videoId, API, tomAtual, ativo, callbacks) {
-  try {
-    console.log("🎵 Preparando Tone.js...");
-    console.log("🔎 Procurando áudio associado ao videoId:", videoId);
+import { useEffect, useRef, useState } from "react";
+import { useNavigate, useParams, useLocation } from "react-router-dom";
+import * as Tone from "tone";
 
-    callbacks.setAudioPronto(false);
-    callbacks.setErroAudio("");
-    callbacks.setAudioNome("");
+const API =
+  import.meta.env.VITE_API_URL ||
+  "https://karaoke-show-grace-backend.vercel.app/api";
 
-    let finalAudioURL = "";
-    let nomeDoAudio = `${videoId}.mp3`;
+const TONS = [
+  "C",
+  "C#",
+  "D",
+  "D#",
+  "E",
+  "F",
+  "F#",
+  "G",
+  "G#",
+  "A",
+  "A#",
+  "B",
+];
 
-    // Tenta buscar no Django
-    try {
-      const resposta = await fetch(`${API}/audio/${videoId}/`);
-      if (resposta.ok) {
-        const dados = await resposta.json();
-        console.log("🎯 Associação recebida do Django:", dados);
-        if (dados.url) {
-          if (dados.url.startsWith("http://") || dados.url.startsWith("https://")) {
-            finalAudioURL = dados.url;
-          } else {
-            finalAudioURL = new URL(dados.url, API).href;
-          }
-          if (dados.audio) nomeDoAudio = dados.audio;
-        }
-      }
-    } catch (err) {
-      console.log("⚠️ Rota de áudio direta indisponível. Usando fallback.");
+export default function Player() {
+  const navigate = useNavigate();
+  const { videoId } = useParams();
+  const location = useLocation();
+
+  const musica = location.state?.musica || "Karaokê";
+
+  // =========================================================
+  // REFS
+  // =========================================================
+
+  const playerRef = useRef(null);
+  const youtubeRef = useRef(null);
+
+  const audioRef = useRef(null);
+  const pitchRef = useRef(null);
+
+  const sincronizacaoRef = useRef(null);
+
+  const youtubeTocandoRef = useRef(false);
+
+  const audioStartTimeRef = useRef(null);
+  const audioOffsetRef = useRef(0);
+  const audioDurationRef = useRef(0);
+
+  const youtubeApiCarregadaRef = useRef(false);
+
+  // =========================================================
+  // STATES
+  // =========================================================
+
+  const [audioPronto, setAudioPronto] = useState(false);
+  const [audioCarregando, setAudioCarregando] = useState(true);
+
+  const [erroAudio, setErroAudio] = useState("");
+
+  const [audioNome, setAudioNome] = useState("");
+
+  const [tomAtual, setTomAtual] = useState(0);
+
+  const [tocando, setTocando] = useState(false);
+
+  const [resultado, setResultado] = useState(null);
+
+  // =========================================================
+  // LIMPAR ÁUDIO
+  // =========================================================
+
+  function limparAudio() {
+    console.log("🧹 Limpando áudio Tone.js...");
+
+    if (sincronizacaoRef.current) {
+      clearInterval(sincronizacaoRef.current);
+      sincronizacaoRef.current = null;
     }
 
-    // Fallback dinâmico para Vercel
-    if (!finalAudioURL) {
-      finalAudioURL = `https://vevioz.com{videoId}`;
-      console.log("🚀 Usando Fallback de Streaming Direto");
+    if (audioRef.current) {
+      try {
+        audioRef.current.stop();
+      } catch {}
+
+      try {
+        audioRef.current.dispose();
+      } catch {}
+
+      audioRef.current = null;
     }
 
-    if (!ativo) return;
+    if (pitchRef.current) {
+      try {
+        pitchRef.current.dispose();
+      } catch {}
 
-    callbacks.setAudioNome(nomeDoAudio);
-
-    // Limpeza dos nós do Tone.js antigos passando as referências pelas pontes
-    if (callbacks.audioRef.current) {
-      try { callbacks.audioRef.current.stop(); } catch {}
-      callbacks.audioRef.current.dispose();
-      callbacks.audioRef.current = null;
+      pitchRef.current = null;
     }
 
-    if (callbacks.pitchRef.current) {
-      callbacks.pitchRef.current.dispose();
-      callbacks.pitchRef.current = null;
-    }
+    audioStartTimeRef.current = null;
+    audioOffsetRef.current = 0;
+    audioDurationRef.current = 0;
 
-    // Inicialização do Pitch Shift
-    const pitchShift = new Tone.PitchShift({
-      pitch: tomAtual,
-      windowSize: 0.1,
-      delayTime: 0,
-      feedback: 0
-    }).toDestination();
-
-    callbacks.pitchRef.current = pitchShift;
-
-    // Inicialização do Player
-    const player = new Tone.Player({
-      url: finalAudioURL,
-      loop: false,
-      autostart: false
-    });
-
-    player.connect(pitchShift);
-    callbacks.audioRef.current = player;
-
-    // Carregamento de buffer
-    await Tone.loaded();
-
-    if (!ativo) {
-      player.dispose();
-      pitchShift.dispose();
-      return;
-    }
-
-    console.log("✅ Tone.js pronto com áudio associado ao vídeo");
-    callbacks.setAudioPronto(true);
-
-  } catch (error) {
-    console.error("❌ Erro ao preparar áudio:", error);
-    if (ativo) {
-      callbacks.setErroAudio(error.message || "Erro ao carregar o fluxo.");
-    }
-  }
-}
-
-// =========================================================================
-// INÍCIO DO SEU COMPONENTE ORIGINAL
-// =========================================================================
-function Player() {}
-  const navigate = useNavigate()
-  const { videoId } = useParams()
-  const location = useLocation()
-
-  const musicaRecebida = location.state?.musica
-  const musica =
-    typeof musicaRecebida === "object"
-      ? musicaRecebida
-      : { titulo: musicaRecebida || "Karaokê", videoId }
-
-  const API =
-    import.meta.env.VITE_API_URL &&
-    import.meta.env.VITE_API_URL !== "undefined"
-      ? import.meta.env.VITE_API_URL
-      : "http://127.0.0.1:8000"
-
-  const playerRef = useRef(null)
-  const audioRef = useRef(null)
-  const pitchRef = useRef(null)
-
-  const audioOffsetRef = useRef(0)
-  const audioStartTimeRef = useRef(null)
-  const audioDurationRef = useRef(0)
-  const sincronizacaoRef = useRef(null)
-
-  const audioInicializandoRef = useRef(false)
-  const audioPreparandoRef = useRef(false)
-  const youtubeCriadoRef = useRef(false)
-  const youtubeTocandoRef = useRef(false)
-
-  const [audioPronto, setAudioPronto] = useState(false)
-  const [tocando, setTocando] = useState(false)
-  const [audioNome, setAudioNome] = useState("")
-  const [erroAudio, setErroAudio] = useState("")
-  const [resultado, setResultado] = useState(null)
-
-  const tons = ["C","C#","D","D#","E","F","F#","G","G#","A","A#","B"]
-  const tomOriginal = 0
-  const [tomAtual, setTomAtual] = useState(0)
-
-  function obterTempoYouTube() {
-    const youtube = playerRef.current
-    if (!youtube || typeof youtube.getCurrentTime !== "function") return null
-    try {
-      const tempo = youtube.getCurrentTime()
-      return (!Number.isFinite(tempo) || tempo < 0) ? null : tempo
-    } catch { return null }
+    setAudioPronto(false);
   }
 
   // =========================================================
-  // GATILHO COMPACTO ATUALIZADO (EVITA ANINHAMENTOS QUEBRADOS)
+  // PREPARAR ÁUDIO
   // =========================================================
+
   useEffect(() => {
     let ativo = true;
 
-    if (audioPreparandoRef.current) return;
-    audioPreparandoRef.current = true;
+    async function prepararAudio() {
+      try {
+        console.log("🎵 Preparando Tone.js...");
+        console.log("🔎 Procurando áudio associado ao videoId:", videoId);
 
-    // Passamos todos os estados e referências dentro de um objeto mapeado de callbacks
-    const callbacks = {
-      setAudioPronto, setErroAudio, setAudioNome, audioRef, pitchRef
-    };
+        setAudioPronto(false);
+        setAudioCarregando(true);
+        setErroAudio("");
+        setAudioNome("");
 
-    executarPreparoAudioExterno(videoId, API, tomAtual, ativo, callbacks).then(() => {
-      audioPreparandoRef.current = false;
-    });
+        limparAudio();
+
+        // -----------------------------------------------------
+        // BUSCAR ÁUDIO NO DJANGO
+        // -----------------------------------------------------
+
+        const resposta = await fetch(`${API}/audio/${videoId}/`);
+
+        if (!resposta.ok) {
+          throw new Error(
+            `O Django não encontrou o áudio. HTTP ${resposta.status}`
+          );
+        }
+
+        const dados = await resposta.json();
+
+        console.log("🎯 Resposta do Django:", dados);
+
+        if (!ativo) return;
+
+        // -----------------------------------------------------
+        // DESCOBRIR URL DO ÁUDIO
+        // -----------------------------------------------------
+
+        let finalAudioURL = "";
+        let nomeDoAudio = `${videoId}.mp3`;
+
+        if (dados.url) {
+          if (
+            dados.url.startsWith("http://") ||
+            dados.url.startsWith("https://")
+          ) {
+            finalAudioURL = dados.url;
+          } else {
+            finalAudioURL = new URL(dados.url, `${API}/`).href;
+          }
+        }
+
+        if (!finalAudioURL && dados.audio) {
+          if (
+            dados.audio.startsWith("http://") ||
+            dados.audio.startsWith("https://")
+          ) {
+            finalAudioURL = dados.audio;
+          } else {
+            finalAudioURL = new URL(dados.audio, `${API}/`).href;
+          }
+        }
+
+        if (dados.audio) {
+          nomeDoAudio = dados.audio;
+        }
+
+        console.log("🎵 URL final do áudio:", finalAudioURL);
+
+        // -----------------------------------------------------
+        // NÃO USAR VEVIOZ
+        // -----------------------------------------------------
+
+        if (!finalAudioURL) {
+          throw new Error(
+            "Esta música ainda não possui um áudio real associado."
+          );
+        }
+
+        setAudioNome(nomeDoAudio);
+
+        // -----------------------------------------------------
+        // INICIAR TONE
+        // -----------------------------------------------------
+
+        console.log("🔊 Criando PitchShift...");
+
+        const pitchShift = new Tone.PitchShift({
+          pitch: tomAtual,
+          windowSize: 0.1,
+          delayTime: 0,
+          feedback: 0,
+        }).toDestination();
+
+        if (!ativo) {
+          pitchShift.dispose();
+          return;
+        }
+
+        pitchRef.current = pitchShift;
+
+        // -----------------------------------------------------
+        // CRIAR PLAYER
+        // -----------------------------------------------------
+
+        console.log("🎧 Criando Tone.Player...");
+
+        const player = new Tone.Player({
+          url: finalAudioURL,
+          loop: false,
+          autostart: false,
+        });
+
+        player.connect(pitchShift);
+
+        audioRef.current = player;
+
+        // -----------------------------------------------------
+        // AGUARDAR DOWNLOAD DO ÁUDIO
+        // -----------------------------------------------------
+
+        console.log("⏳ Aguardando carregamento do áudio...");
+
+        await Tone.loaded();
+
+        if (!ativo) {
+          try {
+            player.dispose();
+          } catch {}
+
+          try {
+            pitchShift.dispose();
+          } catch {}
+
+          return;
+        }
+
+        // -----------------------------------------------------
+        // DURAÇÃO
+        // -----------------------------------------------------
+
+        if (
+          player.buffer &&
+          typeof player.buffer.duration === "number" &&
+          Number.isFinite(player.buffer.duration)
+        ) {
+          audioDurationRef.current = player.buffer.duration;
+
+          console.log(
+            "⏱️ Duração do áudio:",
+            audioDurationRef.current
+          );
+        }
+
+        console.log("✅ Tone.js pronto!");
+
+        setAudioPronto(true);
+        setAudioCarregando(false);
+
+        // -----------------------------------------------------
+        // SE YOUTUBE JÁ ESTIVER TOCANDO
+        // -----------------------------------------------------
+
+        if (youtubeTocandoRef.current) {
+          console.log(
+            "▶️ YouTube já estava tocando. Iniciando áudio Tone.js..."
+          );
+
+          iniciarAudio();
+        }
+      } catch (erro) {
+        console.error("❌ Erro ao preparar áudio:", erro);
+
+        if (!ativo) return;
+
+        setAudioPronto(false);
+        setAudioCarregando(false);
+
+        setErroAudio(
+          erro.message ||
+            "Não foi possível carregar o áudio desta música."
+        );
+      }
+    }
+
+    prepararAudio();
 
     return () => {
       ativo = false;
+
+      limparAudio();
     };
-  }, [videoId, tomAtual, API]);
 
-function Player() {
-  const navigate = useNavigate()
-  const { videoId } = useParams()
-  const location = useLocation()
-
-  
-
-  // =========================================================
-  // MÚSICA RECEBIDA
-  // =========================================================
-
-  const musicaRecebida = location.state?.musica
-
-  const musica =
-    typeof musicaRecebida === "object"
-      ? musicaRecebida
-      : {
-          titulo: musicaRecebida || "Karaokê",
-          videoId
-        }
-
-  // =========================================================
-  // API
-  // =========================================================
-
-  const API =
-    import.meta.env.VITE_API_URL &&
-    import.meta.env.VITE_API_URL !== "undefined"
-      ? import.meta.env.VITE_API_URL
-      : "http://127.0.0.1:8000"
-
-  // =========================================================
-  // REFERÊNCIAS
-  // =========================================================
-
-  const playerRef = useRef(null)
-
-  const audioRef = useRef(null)
-  const pitchRef = useRef(null)
-
-  const audioOffsetRef = useRef(0)
-  const audioStartTimeRef = useRef(null)
-  const audioDurationRef = useRef(0)
-
-  const sincronizacaoRef = useRef(null)
-
-  // Proteções contra inicialização duplicada
-  const audioInicializandoRef = useRef(false)
-  const audioPreparandoRef = useRef(false)
-  const youtubeCriadoRef = useRef(false)
-
-  const youtubeTocandoRef = useRef(false)
-
-  // =========================================================
-  // ESTADOS
-  // =========================================================
-
-  const [audioPronto, setAudioPronto] = useState(false)
-  const [tocando, setTocando] = useState(false)
-
-  const [audioNome, setAudioNome] = useState("")
-  const [erroAudio, setErroAudio] = useState("")
-
-  const [resultado, setResultado] = useState(null)
-
-  // =========================================================
-  // TONALIDADE
-  // =========================================================
-
-  const tons = [
-    "C",
-    "C#",
-    "D",
-    "D#",
-    "E",
-    "F",
-    "F#",
-    "G",
-    "G#",
-    "A",
-    "A#",
-    "B"
-  ]
-
-  const tomOriginal = 0
-  const [tomAtual, setTomAtual] = useState(0)
-
-  // =========================================================
-  // OBTER TEMPO DO YOUTUBE
-  // =========================================================
-
-  function obterTempoYouTube() {
-    const youtube = playerRef.current
-
-    if (
-      !youtube ||
-      typeof youtube.getCurrentTime !== "function"
-    ) {
-      return null
-    }
-
-    try {
-      const tempo = youtube.getCurrentTime()
-
-      if (!Number.isFinite(tempo) || tempo < 0) {
-        return null
-      }
-
-      return tempo
-    } catch {
-      return null
-    }
-  }
-
-  // =========================================================
-  // FUNÇÃO ISOLADA: PREPARAR ÁUDIO (MANTÉM AS CHAVES ÍNTEGRAS)
-  // =========================================================
-  async function prepararAudio(ativo) {
-    if (audioPreparandoRef.current) {
-      console.log("⚠️ Preparação do áudio já está em andamento.")
-      return
-    }
-
-    audioPreparandoRef.current = true
-
-    try {
-      console.log("🎵 Preparando Tone.js...")
-      console.log("🔎 Procurando áudio associado ao videoId:", videoId)
-
-      setAudioPronto(false)
-      setErroAudio("")
-      setAudioNome("")
-
-      let finalAudioURL = ""
-      let nomeDoAudio = `${videoId}.mp3`
-
-      // Buscar áudio no Django
-      try {
-        const resposta = await fetch(`${API}/audio/${videoId}/`)
-        if (resposta.ok) {
-          const dados = await resposta.json()
-          console.log("🎯 Associação recebida do Django:", dados)
-          
-          if (dados.url) {
-            if (dados.url.startsWith("http://") || dados.url.startsWith("https://")) {
-              finalAudioURL = dados.url
-            } else {
-              finalAudioURL = new URL(dados.url, API).href
-            }
-            if (dados.audio) nomeDoAudio = dados.audio
-          }
-        }
-      } catch (err) {
-        console.log("⚠️ Rota de áudio direta indisponível. Usando fallback.")
-      }
-
-      // Fallback dinâmico para nuvem
-      if (!finalAudioURL) {
-        finalAudioURL = `https://vevioz.com{videoId}`
-        console.log("🚀 Usando Fallback de Streaming Direto")
-      }
-
-      if (!ativo) return
-
-      setAudioNome(nomeDoAudio)
-
-      // Limpeza do Player anterior
-      if (audioRef.current) {
-        try { audioRef.current.stop() } catch {}
-        audioRef.current.dispose()
-        audioRef.current = null
-      }
-
-      if (pitchRef.current) {
-        pitchRef.current.dispose()
-        pitchRef.current = null
-      }
-
-      // Pitch Shift
-      const pitchShift = new Tone.PitchShift({
-        pitch: tomAtual,
-        windowSize: 0.1,
-        delayTime: 0,
-        feedback: 0
-      }).toDestination()
-
-      pitchRef.current = pitchShift
-
-      // Player
-      const player = new Tone.Player({
-        url: finalAudioURL,
-        loop: false,
-        autostart: false
-      })
-
-      player.connect(pitchShift)
-      audioRef.current = player
-
-      // Carregar Buffer
-      await Tone.loaded()
-
-      if (!ativo) {
-        player.dispose()
-        pitchShift.dispose()
-        return
-      }
-
-      console.log("✅ Tone.js pronto com áudio associado ao vídeo")
-      setAudioPronto(true)
-      audioPreparandoRef.current = false
-
-    } catch (error) {
-      console.error("❌ Erro ao preparar áudio:", error)
-      if (ativo) {
-        setErroAudio(error.message || "Erro ao carregar o fluxo de áudio.")
-      }
-      audioPreparandoRef.current = false
-    }
-  }
-
-  // =========================================================
-  // GATILHO COMPACTO DO USEEFFECT (LIVRE DE ERROS DE SINTAXE)
-  // =========================================================
-  useEffect(() => {
-    let ativo = true
-    prepararAudio(ativo)
-    return () => { ativo = false }
-  }, [videoId, tomAtual, API])
-
-  // O restante do seu arquivo Player.jsx continua perfeitamente alinhado a partir daqui..
-
-    // =======================================================
-    // LIMPEZA
-    // =======================================================
-
-    return () => {
-      ativo = false
-
-      audioPreparandoRef.current = false
-      audioInicializandoRef.current = false
-
-      if (sincronizacaoRef.current) {
-        clearInterval(
-          sincronizacaoRef.current
-        )
-
-        sincronizacaoRef.current = null
-      }
-
-      if (audioRef.current) {
-        try {
-          audioRef.current.stop()
-        } catch {}
-
-        audioRef.current.dispose()
-        audioRef.current = null
-      }
-
-      if (pitchRef.current) {
-        pitchRef.current.dispose()
-        pitchRef.current = null
-      }
-
-      audioOffsetRef.current = 0
-      audioStartTimeRef.current = null
-
-      youtubeTocandoRef.current = false
-    }
-  } [videoId, API]
+    // IMPORTANTE:
+    // O tomAtual NÃO entra aqui.
+    // Alterar o tom não deve recarregar o MP3.
+  }, [videoId, API]);
 
   // =========================================================
   // INICIAR ÁUDIO
   // =========================================================
 
   async function iniciarAudio() {
-    // -------------------------------------------------------
-    // PROTEÇÃO CONTRA DUPLICAÇÃO
-    // -------------------------------------------------------
-
-    if (audioInicializandoRef.current) {
-      console.log(
-        "⚠️ Áudio já está sendo inicializado."
-      )
-
-      return
-    }
-
-    audioInicializandoRef.current = true
-
     try {
-      // -----------------------------------------------------
-      // DESBLOQUEAR AUDIOCONTEXT
-      // -----------------------------------------------------
-
-      await Tone.start()
-
-      const audio = audioRef.current
-      const youtube = playerRef.current
-
-      if (!audio) {
-        console.log(
-          "⚠️ Tone.js ainda não está pronto"
-        )
-
-        return
+      if (!audioRef.current) {
+        console.log("⚠️ Tone.Player ainda não está pronto.");
+        return;
       }
+
+      if (!audioPronto) {
+        console.log("⚠️ Áudio ainda está carregando.");
+        return;
+      }
+
+      const youtube = youtubeRef.current;
 
       if (!youtube) {
-        console.log(
-          "⚠️ YouTube ainda não está pronto"
-        )
-
-        return
+        console.log("⚠️ YouTube Player ainda não está pronto.");
+        return;
       }
 
-      // -----------------------------------------------------
-      // NÃO INICIAR DUAS VEZES
-      // -----------------------------------------------------
+      // Permissão do navegador para áudio
+      await Tone.start();
 
-      if (audio.state === "started") {
-        console.log(
-          "ℹ️ Tone.js já está tocando"
-        )
+      const tempoYoutube = youtube.getCurrentTime();
 
-        setTocando(true)
-
-        return
-      }
-
-      // -----------------------------------------------------
-      // POSIÇÃO DO YOUTUBE
-      // -----------------------------------------------------
-
-      let offset = obterTempoYouTube()
-
-      if (offset === null) {
-        offset = audioOffsetRef.current
-      }
-
-      const duracao =
-        Number(
-          audioDurationRef.current
-        )
+      let offset = tempoYoutube;
 
       if (
-        Number.isFinite(duracao) &&
-        duracao > 0 &&
-        offset >= duracao
+        audioDurationRef.current > 0 &&
+        offset >= audioDurationRef.current
       ) {
-        offset = 0
+        offset = 0;
       }
 
-      offset = Math.max(
-        0,
-        Number(offset) || 0
-      )
-
-      audioOffsetRef.current = offset
-
       console.log(
-        "▶️ Iniciando áudio na posição:",
-        offset.toFixed(2),
-        "segundos"
-      )
+        "▶️ Iniciando Tone.js no tempo:",
+        offset.toFixed(2)
+      );
 
-      // -----------------------------------------------------
-      // INICIAR
-      // -----------------------------------------------------
+      try {
+        audioRef.current.stop();
+      } catch {}
 
-      audio.start(
-        undefined,
-        offset
-      )
+      audioRef.current.start(undefined, offset);
 
-      audioStartTimeRef.current =
-        Tone.now()
+      audioOffsetRef.current = offset;
+      audioStartTimeRef.current = Tone.now();
 
-      setTocando(true)
+      setTocando(true);
 
-      console.log(
-        "✅ Áudio iniciado sincronizado com YouTube"
-      )
+      iniciarSincronizacao();
     } catch (erro) {
       console.error(
         "❌ Erro ao iniciar áudio:",
         erro
-      )
-    } finally {
-      audioInicializandoRef.current = false
+      );
     }
   }
 
@@ -564,223 +372,136 @@ function Player() {
   // =========================================================
 
   function pausarAudio() {
-    const audio = audioRef.current
+    try {
+      const youtube = youtubeRef.current;
 
-    if (!audio) {
-      return
-    }
+      if (youtube) {
+        audioOffsetRef.current =
+          youtube.getCurrentTime();
+      }
 
-    const posicaoYoutube =
-      obterTempoYouTube()
+      if (audioRef.current) {
+        audioRef.current.stop();
+      }
 
-    if (posicaoYoutube !== null) {
-      audioOffsetRef.current =
-        posicaoYoutube
+      audioStartTimeRef.current = null;
+
+      setTocando(false);
 
       console.log(
-        "⏸️ Pausando áudio na posição:",
-        posicaoYoutube.toFixed(2),
-        "segundos"
-      )
+        "⏸️ Tone.js pausado em:",
+        audioOffsetRef.current.toFixed(2)
+      );
+    } catch (erro) {
+      console.error(
+        "❌ Erro ao pausar áudio:",
+        erro
+      );
     }
-
-    if (audio.state === "started") {
-      audio.stop()
-    }
-
-    audioStartTimeRef.current = null
-
-    setTocando(false)
   }
 
   // =========================================================
-  // BUFFERING
-  // =========================================================
-
-  function tratarBuffering() {
-    const audio = audioRef.current
-
-    if (!audio) {
-      return
-    }
-
-    const tempoYoutube =
-      obterTempoYouTube()
-
-    if (tempoYoutube !== null) {
-      audioOffsetRef.current =
-        tempoYoutube
-
-      console.log(
-        "⏳ BUFFERING → posição:",
-        tempoYoutube.toFixed(2),
-        "segundos"
-      )
-    }
-
-    if (audio.state === "started") {
-      audio.stop()
-
-      console.log(
-        "⏹️ Áudio parado durante BUFFERING"
-      )
-    }
-
-    audioStartTimeRef.current = null
-
-    setTocando(false)
-  }
-
-  // =========================================================
-  // FINAL DA MÚSICA
+  // PARAR ÁUDIO
   // =========================================================
 
   function pararAudio() {
-    const audio = audioRef.current
+    try {
+      if (audioRef.current) {
+        audioRef.current.stop();
+      }
 
-    if (!audio) {
-      return
+      audioOffsetRef.current = 0;
+      audioStartTimeRef.current = null;
+
+      setTocando(false);
+
+      console.log("⏹️ Tone.js parado.");
+    } catch (erro) {
+      console.error(
+        "❌ Erro ao parar áudio:",
+        erro
+      );
     }
-
-    console.log(
-      "⏹️ YouTube terminou → parando áudio"
-    )
-
-    if (audio.state === "started") {
-      audio.stop()
-    }
-
-    audioOffsetRef.current = 0
-    audioStartTimeRef.current = null
-
-    youtubeTocandoRef.current = false
-
-    setTocando(false)
   }
 
   // =========================================================
-  // SINCRONIZAÇÃO
+  // SINCRONIZAÇÃO YOUTUBE ↔ TONE
   // =========================================================
 
   function sincronizarAudioComYouTube() {
-    const youtube = playerRef.current
-    const audio = audioRef.current
+    const youtube = youtubeRef.current;
+    const audio = audioRef.current;
 
     if (!youtube || !audio) {
-      return
+      return;
     }
 
     if (!youtubeTocandoRef.current) {
-      return
+      return;
     }
 
-    const youtubeTempo =
-      obterTempoYouTube()
+    try {
+      const tempoYoutube =
+        youtube.getCurrentTime();
 
-    if (youtubeTempo === null) {
-      return
-    }
+      let tempoTone = audioOffsetRef.current;
 
-    const duracao =
-      Number(
-        audioDurationRef.current
-      )
-
-    if (
-      !Number.isFinite(duracao) ||
-      duracao <= 0
-    ) {
-      return
-    }
-
-    const novoTempo =
-      Math.min(
-        Math.max(
-          youtubeTempo,
-          0
-        ),
-        duracao
-      )
-
-    let audioTempo =
-      Number(
-        audioOffsetRef.current
-      )
-
-    if (
-      audio.state === "started" &&
-      audioStartTimeRef.current !== null
-    ) {
-      audioTempo =
-        audioOffsetRef.current +
-        (
-          Tone.now() -
-          audioStartTimeRef.current
-        )
-    }
-
-    if (!Number.isFinite(audioTempo)) {
-      audioTempo = 0
-    }
-
-    const diferenca =
-      Math.abs(
-        novoTempo -
-        audioTempo
-      )
-
-    // -------------------------------------------------------
-    // CORRIGIR SOMENTE SE A DIFERENÇA FOR SIGNIFICATIVA
-    // -------------------------------------------------------
-
-    if (diferenca > 0.4) {
-      console.log(
-        "🔄 Reposicionando áudio:",
-        audioTempo.toFixed(2),
-        "→",
-        novoTempo.toFixed(2),
-        "| diferença:",
-        diferenca.toFixed(2)
-      )
-
-      if (audio.state === "started") {
-        audio.stop()
+      if (audioStartTimeRef.current !== null) {
+        tempoTone =
+          audioOffsetRef.current +
+          (Tone.now() -
+            audioStartTimeRef.current);
       }
 
-      audioOffsetRef.current =
-        novoTempo
+      const diferenca =
+        Math.abs(tempoYoutube - tempoTone);
 
-      audio.start(
-        undefined,
-        novoTempo
-      )
+      if (diferenca > 0.4) {
+        console.log(
+          "🔄 Corrigindo sincronização:",
+          {
+            youtube: tempoYoutube.toFixed(2),
+            tone: tempoTone.toFixed(2),
+            diferenca: diferenca.toFixed(2),
+          }
+        );
 
-      audioStartTimeRef.current =
-        Tone.now()
+        try {
+          audio.stop();
+        } catch {}
 
+        audio.start(
+          undefined,
+          tempoYoutube
+        );
+
+        audioOffsetRef.current =
+          tempoYoutube;
+
+        audioStartTimeRef.current =
+          Tone.now();
+      }
+    } catch (erro) {
       console.log(
-        "✅ Áudio reposicionado"
-      )
+        "⚠️ Erro na sincronização:",
+        erro
+      );
     }
   }
 
   // =========================================================
-  // MONITORAMENTO
+  // INICIAR SINCRONIZAÇÃO
   // =========================================================
 
   function iniciarSincronizacao() {
     if (sincronizacaoRef.current) {
-      return
+      return;
     }
 
     sincronizacaoRef.current =
       setInterval(() => {
-        sincronizarAudioComYouTube()
-      }, 500)
-
-    console.log(
-      "🔄 Monitoramento de sincronização iniciado"
-    )
+        sincronizarAudioComYouTube();
+      }, 500);
   }
 
   // =========================================================
@@ -788,739 +509,797 @@ function Player() {
   // =========================================================
 
   useEffect(() => {
-    let ativo = true
+    let ativo = true;
 
-    function criarPlayer() {
-      if (!ativo || !videoId) {
-        return
-      }
+    function criarYoutubePlayer() {
+      if (!ativo) return;
 
-      // -----------------------------------------------------
-      // PROTEÇÃO CONTRA DUPLICAÇÃO
-      // -----------------------------------------------------
-
-      if (youtubeCriadoRef.current) {
+      if (!window.YT || !window.YT.Player) {
         console.log(
-          "⚠️ YouTube Player já foi criado."
-        )
-
-        return
+          "⏳ YouTube API ainda não carregada..."
+        );
+        return;
       }
 
-      if (
-        !window.YT ||
-        !window.YT.Player
-      ) {
-        return
+      if (!playerRef.current) {
+        console.log(
+          "⚠️ Elemento do YouTube ainda não existe."
+        );
+        return;
       }
-
-      youtubeCriadoRef.current = true
 
       console.log(
         "🎬 Criando YouTube Player:",
         videoId
-      )
+      );
 
-      playerRef.current =
-        new window.YT.Player(
-          "player",
-          {
-            videoId,
+      try {
+        youtubeRef.current =
+          new window.YT.Player(
+            playerRef.current,
+            {
+              videoId: videoId,
 
-            width: "100%",
-            height: "100%",
-
-            playerVars: {
-              modestbranding: 1,
-              rel: 0,
-              enablejsapi: 1,
-              origin:
-                window.location.origin
-            },
-
-            events: {
-              // =============================================
-              // READY
-              // =============================================
-
-              onReady: (event) => {
-                if (!ativo) {
-                  return
-                }
-
-                console.log(
-                  "✅ YouTube pronto"
-                )
-
-                try {
-                  event.target.mute()
-
-                  console.log(
-                    "🔇 YouTube mutado"
-                  )
-                } catch {}
-
-                iniciarSincronizacao()
+              playerVars: {
+                autoplay: 0,
+                controls: 1,
+                modestbranding: 1,
+                rel: 0,
+                enablejsapi: 1,
+                origin:
+                  window.location.origin,
               },
 
-              // =============================================
-              // ESTADO
-              // =============================================
-
-              onStateChange: (e) => {
-                if (!ativo) {
-                  return
-                }
-
-                console.log(
-                  "🎬 Estado YouTube:",
-                  e.data
-                )
-
-                // ------------------------------------------------
-                // PLAY
-                // ------------------------------------------------
-
-                if (
-                  e.data ===
-                  window.YT.PlayerState.PLAYING
-                ) {
+              events: {
+                onReady: (event) => {
                   console.log(
-                    "▶️ YouTube PLAY"
-                  )
+                    "✅ YouTube Player pronto."
+                  );
 
-                  youtubeTocandoRef.current =
-                    true
+                  // IMPORTANTE:
+                  // O áudio original do YouTube fica mudo.
+                  event.target.mute();
 
-                  iniciarAudio()
-                }
+                  iniciarSincronizacao();
+                },
 
-                // ------------------------------------------------
-                // PAUSE
-                // ------------------------------------------------
+                onStateChange: (event) => {
+                  const estado =
+                    event.data;
 
-                if (
-                  e.data ===
-                  window.YT.PlayerState.PAUSED
-                ) {
-                  console.log(
-                    "⏸️ YouTube PAUSE"
-                  )
+                  // PLAYING
+                  if (
+                    estado ===
+                    window.YT.PlayerState.PLAYING
+                  ) {
+                    console.log(
+                      "▶️ YouTube PLAY → iniciando Tone.js"
+                    );
 
-                  youtubeTocandoRef.current =
-                    false
+                    youtubeTocandoRef.current =
+                      true;
 
-                  pausarAudio()
-                }
+                    setTocando(true);
 
-                // ------------------------------------------------
-                // BUFFERING
-                // ------------------------------------------------
+                    iniciarAudio();
+                  }
 
-                if (
-                  e.data ===
-                  window.YT.PlayerState.BUFFERING
-                ) {
-                  console.log(
-                    "⏳ YouTube BUFFERING"
-                  )
+                  // PAUSED
+                  else if (
+                    estado ===
+                    window.YT.PlayerState.PAUSED
+                  ) {
+                    console.log(
+                      "⏸️ YouTube PAUSE → pausando Tone.js"
+                    );
 
-                  tratarBuffering()
-                }
+                    youtubeTocandoRef.current =
+                      false;
 
-                // ------------------------------------------------
-                // FIM
-                // ------------------------------------------------
+                    pausarAudio();
+                  }
 
-                if (
-                  e.data ===
-                  window.YT.PlayerState.ENDED
-                ) {
-                  console.log(
-                    "🏁 YouTube terminou"
-                  )
+                  // BUFFERING
+                  else if (
+                    estado ===
+                    window.YT.PlayerState.BUFFERING
+                  ) {
+                    console.log(
+                      "⏳ YouTube BUFFERING"
+                    );
 
-                  youtubeTocandoRef.current =
-                    false
+                    // Não paramos o áudio imediatamente.
+                    // O controle de sincronização
+                    // cuidará da correção.
+                  }
 
-                  pararAudio()
+                  // ENDED
+                  else if (
+                    estado ===
+                    window.YT.PlayerState.ENDED
+                  ) {
+                    console.log(
+                      "🏁 YouTube ENDED"
+                    );
 
-                  mostrarResultado()
-                }
-              }
+                    youtubeTocandoRef.current =
+                      false;
+
+                    pararAudio();
+
+                    mostrarResultado();
+                  }
+                },
+              },
             }
-          }
-        )
+          );
+      } catch (erro) {
+        console.error(
+          "❌ Erro ao criar YouTube Player:",
+          erro
+        );
+      }
     }
 
-    // =======================================================
+    // -------------------------------------------------------
     // API JÁ EXISTE
-    // =======================================================
+    // -------------------------------------------------------
 
     if (
       window.YT &&
       window.YT.Player
     ) {
-      criarPlayer()
+      youtubeApiCarregadaRef.current =
+        true;
+
+      criarYoutubePlayer();
     } else {
+      // -----------------------------------------------------
+      // CARREGAR API
+      // -----------------------------------------------------
+
       console.log(
         "📡 Carregando YouTube IFrame API..."
-      )
+      );
 
       const scriptExistente =
         document.querySelector(
           'script[src="https://www.youtube.com/iframe_api"]'
-        )
-
-      if (!scriptExistente) {
-        const tag =
-          document.createElement("script")
-
-        tag.src =
-          "https://www.youtube.com/iframe_api"
-
-        document.body.appendChild(tag)
-      }
-
-      // -----------------------------------------------------
-      // NÃO SOBRESCREVER DESNECESSARIAMENTE
-      // -----------------------------------------------------
+        );
 
       const callbackAnterior =
-        window.onYouTubeIframeAPIReady
+        window.onYouTubeIframeAPIReady;
 
       window.onYouTubeIframeAPIReady =
         () => {
-          if (
-            typeof callbackAnterior ===
-            "function"
-          ) {
+          console.log(
+            "✅ YouTube IFrame API carregada."
+          );
+
+          youtubeApiCarregadaRef.current =
+            true;
+
+          if (callbackAnterior) {
             try {
-              callbackAnterior()
+              callbackAnterior();
             } catch {}
           }
 
-          criarPlayer()
-        }
+          criarYoutubePlayer();
+        };
+
+      if (!scriptExistente) {
+        const script =
+          document.createElement(
+            "script"
+          );
+
+        script.src =
+          "https://www.youtube.com/iframe_api";
+
+        script.async = true;
+
+        document.body.appendChild(
+          script
+        );
+      }
     }
 
-    // =======================================================
-    // LIMPEZA
-    // =======================================================
-
     return () => {
-      ativo = false
+      ativo = false;
+
+      youtubeTocandoRef.current =
+        false;
 
       if (sincronizacaoRef.current) {
         clearInterval(
           sincronizacaoRef.current
-        )
+        );
 
-        sincronizacaoRef.current = null
+        sincronizacaoRef.current =
+          null;
       }
 
-      youtubeTocandoRef.current =
-        false
-
-      youtubeCriadoRef.current =
-        false
-
-      if (playerRef.current) {
+      if (
+        youtubeRef.current &&
+        typeof youtubeRef.current.destroy ===
+          "function"
+      ) {
         try {
-          playerRef.current.destroy()
+          youtubeRef.current.destroy();
         } catch {}
-
-        playerRef.current = null
       }
-    }
-  }, [videoId])
+
+      youtubeRef.current = null;
+    };
+  }, [videoId]);
 
   // =========================================================
-  // AUMENTAR TOM
+  // ALTERAR TOM
   // =========================================================
 
   function aumentarTom() {
     setTomAtual((atual) => {
-      const novoTom =
-        (atual + 1) % 12
+      const novoTom = atual + 1;
 
-      console.log(
-        "🎵 Aumentando tom:",
-        novoTom,
-        tons[novoTom]
-      )
+      // Limita entre -12 e +12 semitons
+      const valor =
+        novoTom > 12
+          ? 12
+          : novoTom;
 
       if (pitchRef.current) {
         pitchRef.current.pitch =
-          novoTom
+          valor;
       }
 
-      return novoTom
-    })
-  }
+      console.log(
+        "🎵 Tom:",
+        TONS[
+          ((valor % 12) + 12) % 12
+        ],
+        "Pitch:",
+        valor
+      );
 
-  // =========================================================
-  // DIMINUIR TOM
-  // =========================================================
+      return valor;
+    });
+  }
 
   function diminuirTom() {
     setTomAtual((atual) => {
-      const novoTom =
-        (atual - 1 + 12) % 12
+      const novoTom = atual - 1;
 
-      console.log(
-        "🎵 Diminuindo tom:",
-        novoTom,
-        tons[novoTom]
-      )
+      // Limita entre -12 e +12 semitons
+      const valor =
+        novoTom < -12
+          ? -12
+          : novoTom;
 
       if (pitchRef.current) {
         pitchRef.current.pitch =
-          novoTom
+          valor;
       }
 
-      return novoTom
-    })
+      console.log(
+        "🎵 Tom:",
+        TONS[
+          ((valor % 12) + 12) % 12
+        ],
+        "Pitch:",
+        valor
+      );
+
+      return valor;
+    });
   }
 
   // =========================================================
-  // RESTAURAR TOM
+  // TOM VISUAL
   // =========================================================
 
-  function restaurarTomOriginal() {
-    console.log(
-      "🔄 Voltando ao tom original"
-    )
+  const indiceTomVisual =
+    ((tomAtual % 12) + 12) % 12;
 
-    setTomAtual(
-      tomOriginal
-    )
-
-    if (pitchRef.current) {
-      pitchRef.current.pitch =
-        tomOriginal
-    }
-  }
+  const nomeTom =
+    TONS[indiceTomVisual];
 
   // =========================================================
   // RESULTADO
   // =========================================================
 
   function mostrarResultado() {
-    const nota = (
-      Math.random() * 4 +
-      6
-    ).toFixed(1)
+    const notas = [
+      70,
+      75,
+      80,
+      85,
+      88,
+      90,
+      92,
+      95,
+      98,
+      100,
+    ];
 
-    const cantor =
-      musica.cantor?.trim() ||
-      "Você"
+    const mensagens = [
+      "Mandou muito bem! 🎤",
+      "Excelente! 👏",
+      "Você arrasou! 🔥",
+      "Que voz! 🎶",
+      "Foi muito bem! ⭐",
+      "Show de bola! 🎉",
+    ];
 
-    let emoji = "😬"
-    let frases = []
-
-    // -------------------------------------------------------
-    // NOTA 9 OU 10
-    // -------------------------------------------------------
-
-    if (nota >= 9) {
-      emoji = "🔥"
-
-      frases = [
-        `Parabéns, ${cantor}! Você arrasou!!!!! 🔥`,
-        `Sensacional, ${cantor}! Você deu um show! 🎤🔥`,
-        `${cantor}, que apresentação incrível! 👏👏👏`,
-        `Parabéns, ${cantor}! Hoje você estava inspirado! ⭐`,
-        `${cantor}, você simplesmente destruiu! Que show! 🔥`,
-        `Que voz, ${cantor}! Você nasceu para o karaokê! 🎶`,
-        `${cantor}, essa foi de arrepiar! Parabéns! 👏`,
-        `${cantor}, você mandou muito bem! Espetacular! 🌟`
-      ]
-    }
-
-    // -------------------------------------------------------
-    // NOTA 7 ATÉ 8.9
-    // -------------------------------------------------------
-
-    else if (nota >= 7) {
-      emoji = "😎"
-
-      frases = [
-        `Mandou muito bem, ${cantor}! 😎`,
-        `Parabéns, ${cantor}! Essa foi muito boa! 👏`,
-        `${cantor}, você está pegando fogo! 🔥`,
-        `Muito bom, ${cantor}! Continue assim! 🎤`,
-        `${cantor}, quase perfeito! Você foi muito bem! ⭐`,
-        `Boa, ${cantor}! Essa merece aplausos! 👏👏`,
-        `${cantor}, mandou bem demais! 😎🎶`
-      ]
-    }
-
-    // -------------------------------------------------------
-    // NOTA ABAIXO DE 7
-    // -------------------------------------------------------
-
-    else {
-      emoji = "😬"
-
-      frases = [
-        `${cantor}, o importante é cantar e se divertir! 🎤❤️`,
-        `Muito bem, ${cantor}! A próxima será ainda melhor! 💪`,
-        `${cantor}, não pare! Cada música fica melhor! 🎶`,
-        `Parabéns, ${cantor}! Continue soltando a voz! 👏`,
-        `${cantor}, o palco é seu! Vamos para a próxima! 🔥`,
-        `Boa, ${cantor}! O importante é cantar com alegria! 😊`,
-        `${cantor}, já temos uma estrela no karaokê! ⭐`
-      ]
-    }
-
-    // -------------------------------------------------------
-    // ESCOLHER FRASE ALEATÓRIA
-    // -------------------------------------------------------
+    const nota =
+      notas[
+        Math.floor(
+          Math.random() *
+            notas.length
+        )
+      ];
 
     const mensagem =
-      frases[
+      mensagens[
         Math.floor(
-          Math.random() * frases.length
+          Math.random() *
+            mensagens.length
         )
-      ]
-
-    // -------------------------------------------------------
-    // MOSTRAR RESULTADO
-    // -------------------------------------------------------
+      ];
 
     setResultado({
       nota,
-      emoji,
       mensagem,
-      cantor
-    })
+    });
 
-    // -------------------------------------------------------
-    // APLAUSOS
-    // -------------------------------------------------------
+    try {
+      const aplausos =
+        new Audio(
+          "https://www.myinstants.com/media/sounds/aplausos.mp3"
+        );
 
-    const aplausos =
-      new Audio(
-        "https://www.myinstants.com/media/sounds/aplausos.mp3"
-      )
+      aplausos.volume = 0.7;
 
-    aplausos
-      .play()
-      .catch(() => {})
+      aplausos
+        .play()
+        .catch(() => {});
+    } catch {}
   }
 
   // =========================================================
-  // TELA
+  // SALVAR NA PLAYLIST
+  // =========================================================
+
+  async function salvarNaPlaylist() {
+    try {
+      const cantor = window.prompt(
+        "Digite o nome do cantor:",
+        ""
+      );
+
+      if (!cantor) {
+        return;
+      }
+
+      const resposta =
+        await fetch(
+          `${API}/salvar/`,
+          {
+            method: "POST",
+
+            headers: {
+              "Content-Type":
+                "application/json",
+            },
+
+            body: JSON.stringify({
+              titulo: musica,
+              videoId,
+              cantor,
+            }),
+          }
+        );
+
+      const dados =
+        await resposta.json();
+
+      console.log(
+        "💾 Resposta salvar playlist:",
+        dados
+      );
+
+      if (!resposta.ok) {
+        throw new Error(
+          dados.erro ||
+            "Erro ao salvar música."
+        );
+      }
+
+      alert(
+        "🎵 Música salva na playlist!"
+      );
+    } catch (erro) {
+      console.error(
+        "❌ Erro ao salvar playlist:",
+        erro
+      );
+
+      alert(
+        erro.message ||
+          "Erro ao salvar música."
+      );
+    }
+  }
+
+  // =========================================================
+  // TELA DE RESULTADO
+  // =========================================================
+
+  if (resultado) {
+    return (
+      <div
+        style={{
+          minHeight: "100vh",
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          justifyContent: "center",
+          background:
+            "linear-gradient(135deg, #111827, #312e81)",
+          color: "#fff",
+          padding: "30px",
+          textAlign: "center",
+        }}
+      >
+        <h1
+          style={{
+            fontSize: "42px",
+            marginBottom: "10px",
+          }}
+        >
+          🎤 Resultado
+        </h1>
+
+        <div
+          style={{
+            fontSize: "80px",
+            fontWeight: "bold",
+            margin: "20px",
+          }}
+        >
+          {resultado.nota}
+        </div>
+
+        <h2>
+          {resultado.mensagem}
+        </h2>
+
+        <div
+          style={{
+            display: "flex",
+            gap: "15px",
+            marginTop: "30px",
+            flexWrap: "wrap",
+            justifyContent: "center",
+          }}
+        >
+          <button
+            onClick={() =>
+              setResultado(null)
+            }
+            style={{
+              padding:
+                "14px 24px",
+              fontSize: "18px",
+              cursor: "pointer",
+            }}
+          >
+            🎤 Cantar novamente
+          </button>
+
+          <button
+            onClick={() =>
+              navigate(-1)
+            }
+            style={{
+              padding:
+                "14px 24px",
+              fontSize: "18px",
+              cursor: "pointer",
+            }}
+          >
+            ← Voltar
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // =========================================================
+  // JSX PRINCIPAL
   // =========================================================
 
   return (
     <div
       style={{
-        textAlign: "center",
-        padding: "20px",
-        backgroundColor:
-          "#121212",
         minHeight: "100vh",
-        color: "#fff"
+        background: "#111827",
+        color: "#fff",
+        padding: "20px",
       }}
     >
-      <button
-        onClick={() =>
-          navigate(-1)
-        }
-      >
-        ⬅ Voltar
-      </button>
-
-      <h2>
-        🎤 {musica.titulo}
-      </h2>
-
-      {!resultado && (
-        <>
-          {/* =================================================
-              VÍDEO
-          ================================================= */}
-
-          <div
-            style={{
-              position: "relative",
-              width: "100%",
-              maxWidth: "800px",
-              margin: "20px auto",
-              paddingBottom: "56.25%"
-            }}
-          >
-            <div
-              id="player"
-              style={{
-                position:
-                  "absolute",
-                top: 0,
-                left: 0,
-                width: "100%",
-                height: "100%"
-              }}
-            />
-          </div>
-
-          {/* =================================================
-              STATUS DO ÁUDIO
-          ================================================= */}
-
-          <div
-            style={{
-              maxWidth: "800px",
-              margin: "10px auto",
-              padding: "10px",
-              backgroundColor:
-                "#1e1e1e",
-              borderRadius: "10px"
-            }}
-          >
-            {erroAudio ? (
-              <>
-                <p
-                  style={{
-                    margin: 0,
-                    color: "#ff6b6b"
-                  }}
-                >
-                  ⚠️ {erroAudio}
-                </p>
-
-                <p
-                  style={{
-                    margin:
-                      "8px 0 0",
-                    color: "#aaa"
-                  }}
-                >
-                  O vídeo permanece disponível,
-                  mas nenhum áudio será reproduzido
-                  até que ele seja associado no Django.
-                </p>
-              </>
-            ) : (
-              <>
-                <p
-                  style={{
-                    margin: 0
-                  }}
-                >
-                  🎵 Áudio:{" "}
-                  {audioPronto
-                    ? "✅ Pronto"
-                    : "⏳ Carregando..."}
-                </p>
-
-                {audioNome && (
-                  <p
-                    style={{
-                      margin:
-                        "5px 0 0",
-                      color: "#aaa",
-                      fontSize:
-                        "14px"
-                    }}
-                  >
-                    🎧 Arquivo:{" "}
-                    {audioNome}
-                  </p>
-                )}
-
-                <p
-                  style={{
-                    margin:
-                      "5px 0 0",
-                    color: "#aaa"
-                  }}
-                >
-                  {tocando
-                    ? "▶️ Tocando junto com YouTube"
-                    : "⏸️ Parado"}
-                </p>
-              </>
-            )}
-          </div>
-
-          {/* =================================================
-              TONALIDADE
-          ================================================= */}
-
-          <div
-            style={{
-              maxWidth: "800px",
-              margin: "20px auto",
-              padding: "20px",
-              backgroundColor:
-                "#1e1e1e",
-              borderRadius: "12px"
-            }}
-          >
-            <h3>
-              🎵 Tonalidade
-            </h3>
-
-            <div
-              style={{
-                display: "flex",
-                alignItems:
-                  "center",
-                justifyContent:
-                  "center",
-                gap: "20px",
-                marginTop:
-                  "15px"
-              }}
-            >
-              <button
-                onClick={
-                  diminuirTom
-                }
-                style={{
-                  fontSize:
-                    "24px",
-                  width: "50px",
-                  height: "50px",
-                  cursor:
-                    "pointer"
-                }}
-              >
-                −
-              </button>
-
-              <div
-                style={{
-                  minWidth:
-                    "100px",
-                  fontSize:
-                    "30px",
-                  fontWeight:
-                    "bold"
-                }}
-              >
-                {tons[tomAtual]}
-              </div>
-
-              <button
-                onClick={
-                  aumentarTom
-                }
-                style={{
-                  fontSize:
-                    "24px",
-                  width: "50px",
-                  height: "50px",
-                  cursor:
-                    "pointer"
-                }}
-              >
-                +
-              </button>
-            </div>
-
-            <p
-              style={{
-                marginTop:
-                  "15px",
-                color: "#aaa"
-              }}
-            >
-              Tom original:{" "}
-              <strong>
-                {tons[tomOriginal]}
-              </strong>
-            </p>
-
-            {tomAtual !==
-              tomOriginal && (
-              <button
-                onClick={
-                  restaurarTomOriginal
-                }
-                style={{
-                  marginTop:
-                    "5px",
-                  padding:
-                    "8px 15px",
-                  cursor:
-                    "pointer"
-                }}
-              >
-                🔄 Voltar ao tom original
-              </button>
-            )}
-          </div>
-        </>
-      )}
-
       {/* =====================================================
-          RESULTADO
-      ===================================================== */}
+          TÍTULO
+      ====================================================== */}
 
-      {resultado && (
-        <div
+      <div
+        style={{
+          textAlign: "center",
+          marginBottom: "20px",
+        }}
+      >
+        <h1>
+          🎤 {musica}
+        </h1>
+
+        <p
           style={{
-            maxWidth: "800px",
-            margin: "40px auto",
-            padding: "40px 20px",
-            backgroundColor:
-              "#1e1e1e",
-            borderRadius: "20px"
+            opacity: 0.8,
           }}
         >
-          <h1
-            style={{
-              fontSize: "70px",
-              margin: "0 0 10px"
-            }}
-          >
-            {resultado.emoji}
-          </h1>
+          Karaoke Show Grace
+        </p>
+      </div>
 
-          <h2
-            style={{
-              fontSize: "32px",
-              margin: "10px 0"
-            }}
-          >
-            Nota: {resultado.nota}
-          </h2>
+      {/* =====================================================
+          VÍDEO YOUTUBE
+      ====================================================== */}
 
-          <h3
-            style={{
-              fontSize: "28px",
-              margin: "20px 0",
-              color: "#ffd700"
-            }}
-          >
-            🎤 {resultado.cantor}
-          </h3>
+      <div
+        style={{
+          width: "100%",
+          maxWidth: "1000px",
+          margin: "0 auto",
+          aspectRatio: "16 / 9",
+          background: "#000",
+          borderRadius: "12px",
+          overflow: "hidden",
+        }}
+      >
+        <div
+          ref={playerRef}
+          style={{
+            width: "100%",
+            height: "100%",
+          }}
+        />
+      </div>
 
-          <p
-            style={{
-              fontSize: "24px",
-              fontWeight: "bold",
-              marginTop: "20px"
-            }}
-          >
-            {resultado.mensagem}
-          </p>
+      {/* =====================================================
+          STATUS DO ÁUDIO
+      ====================================================== */}
 
+      <div
+        style={{
+          maxWidth: "1000px",
+          margin: "20px auto",
+          padding: "15px",
+          borderRadius: "10px",
+          background: "#1f2937",
+          textAlign: "center",
+        }}
+      >
+        {audioCarregando && (
+          <div>
+            ⏳ Preparando áudio...
+          </div>
+        )}
+
+        {!audioCarregando &&
+          audioPronto && (
+            <div
+              style={{
+                color: "#4ade80",
+              }}
+            >
+              ✅ Áudio pronto
+              {audioNome
+                ? ` — ${audioNome}`
+                : ""}
+            </div>
+          )}
+
+        {erroAudio && (
           <div
             style={{
-              fontSize: "35px",
-              marginTop: "25px"
+              color: "#f87171",
+              marginTop: "5px",
             }}
           >
-            👏 👏 👏 👏 👏
+            ❌ {erroAudio}
           </div>
+        )}
+      </div>
+
+      {/* =====================================================
+          CONTROLE DE TOM
+      ====================================================== */}
+
+      <div
+        style={{
+          maxWidth: "1000px",
+          margin: "20px auto",
+          padding: "20px",
+          background: "#1f2937",
+          borderRadius: "12px",
+          textAlign: "center",
+        }}
+      >
+        <h2>
+          🎵 Tonalidade
+        </h2>
+
+        <div
+          style={{
+            fontSize: "40px",
+            fontWeight: "bold",
+            margin: "15px",
+          }}
+        >
+          {nomeTom}
         </div>
-      )}
+
+        <div
+          style={{
+            fontSize: "16px",
+            opacity: 0.8,
+            marginBottom: "15px",
+          }}
+        >
+          {tomAtual > 0
+            ? `+${tomAtual} semitom${
+                tomAtual === 1
+                  ? ""
+                  : "s"
+              }`
+            : `${tomAtual} semitom${
+                tomAtual === -1
+                  ? ""
+                  : "s"
+              }`}
+        </div>
+
+        <div
+          style={{
+            display: "flex",
+            justifyContent:
+              "center",
+            gap: "15px",
+          }}
+        >
+          <button
+            onClick={diminuirTom}
+            disabled={
+              tomAtual <= -12
+            }
+            style={{
+              fontSize: "28px",
+              width: "70px",
+              height: "55px",
+              cursor:
+                tomAtual <= -12
+                  ? "not-allowed"
+                  : "pointer",
+            }}
+          >
+            −
+          </button>
+
+          <button
+            onClick={() =>
+              setTomAtual(0)
+            }
+            style={{
+              fontSize: "18px",
+              padding:
+                "0 20px",
+              cursor: "pointer",
+            }}
+          >
+            Original
+          </button>
+
+          <button
+            onClick={aumentarTom}
+            disabled={
+              tomAtual >= 12
+            }
+            style={{
+              fontSize: "28px",
+              width: "70px",
+              height: "55px",
+              cursor:
+                tomAtual >= 12
+                  ? "not-allowed"
+                  : "pointer",
+            }}
+          >
+            +
+          </button>
+        </div>
+      </div>
+
+      {/* =====================================================
+          CONTROLES
+      ====================================================== */}
+
+      <div
+        style={{
+          maxWidth: "1000px",
+          margin: "20px auto",
+          display: "flex",
+          justifyContent:
+            "center",
+          gap: "12px",
+          flexWrap: "wrap",
+        }}
+      >
+        <button
+          onClick={salvarNaPlaylist}
+          style={{
+            padding:
+              "12px 20px",
+            fontSize: "16px",
+            cursor: "pointer",
+          }}
+        >
+          💾 Salvar na Playlist
+        </button>
+
+        <button
+          onClick={() =>
+            navigate(-1)
+          }
+          style={{
+            padding:
+              "12px 20px",
+            fontSize: "16px",
+            cursor: "pointer",
+          }}
+        >
+          ← Voltar
+        </button>
+      </div>
+
+      {/* =====================================================
+          INFORMAÇÃO
+      ====================================================== */}
+
+      <div
+        style={{
+          maxWidth: "1000px",
+          margin: "30px auto",
+          textAlign: "center",
+          opacity: 0.7,
+          fontSize: "14px",
+        }}
+      >
+        <p>
+          🎧 O áudio original do
+          YouTube está silenciado.
+        </p>
+
+        <p>
+          🎵 O áudio processado pelo
+          Tone.js é usado para permitir
+          alteração da tonalidade.
+        </p>
+
+        <p>
+          🎚️ Use + e − para alterar o
+          tom em semitons.
+        </p>
+      </div>
     </div>
-  )
-
-
-export default Player
+  );
+}
