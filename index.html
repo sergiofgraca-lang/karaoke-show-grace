@@ -9,30 +9,36 @@
   <body>
     <div id="root"></div>
     <script type="module" src="/src/main.jsx"></script>
-      <!-- ========================================================================= -->
-    <!-- INTERCEPTADOR GLOBAL DE REDE (RESOLUÇÃO DO INDICE DE REQUISIÇÃO)         -->
+       <!-- ========================================================================= -->
+    <!-- INTERCEPTADOR E CORRETOR DE REDE BLINDADO (PEGA OBJETOS DO TONE.JS)       -->
     <!-- ========================================================================= -->
     <script>
       (function() {
         const originalFetch = window.fetch;
         window.fetch = async function(...args) {
-          // Captura a URL real contida obrigatoriamente na primeira posição do array de argumentos
-          let urlInformada = args[0];
-          
-          if (urlInformada && typeof urlInformada === 'string') {
-            // Se encontrar a string quebrada do cache sem as barras da API
-            if (urlInformada.includes("vevioz.com") && !urlInformada.includes("/api/button/mp3/")) {
-              // Isola o videoId removendo o domínio base
-              const videoId = urlInformada.split("vevioz.com").pop().replace(/[^a-zA-Z0-9_-]/g, "");
+          // No JavaScript, o primeiro argumento do fetch (args[0]) pode ser uma String ou um Request Object
+          if (args[0]) {
+            let urlText = "";
+            
+            // Se for um objeto do Tone.js, extrai a propriedade url, se for string lê direto
+            if (typeof args[0] === 'object' && args[0].url) {
+              urlText = String(args[0].url);
+            } else if (typeof args[0] === 'string') {
+              urlText = args[0];
+            }
+
+            // Se a URL capturada contiver a falha do vevioz sem as barras da API
+            if (urlText.includes("vevioz.com") && !urlText.includes("/api/button/mp3/")) {
+              // Separa e limpa o videoId isolando os caracteres válidos do YouTube
+              const videoId = urlText.split("vevioz.com").pop().replace(/[^a-zA-Z0-9_-]/g, "");
               
               if (videoId) {
-                // Reconstrói a URL oficial completa exigida pelo conversor
                 const urlCorrigidaCompleta = "https://vevioz.com" + videoId;
                 
-                // INJEÇÃO NO ARRAY: Altera diretamente o primeiro argumento que o navegador vai disparar
+                // Sobrescreve o destino do fetch de forma cirúrgica na primeira posição do argumento
                 args[0] = urlCorrigidaCompleta;
                 
-                console.log("🛠️ Interceptador Global: URL corrigida com sucesso para ->", urlCorrigidaCompleta);
+                console.log("🛠️ Interceptador Blindado: Objeto do Tone.js corrigido com sucesso para ->", urlCorrigidaCompleta);
               }
             }
           }
