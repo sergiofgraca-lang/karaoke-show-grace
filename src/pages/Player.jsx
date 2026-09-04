@@ -119,49 +119,45 @@ export default function Player() {
 
         let dados = {};
         try {
-          // Usa videoIdMusica para buscar a associação no Django
-          const resposta = await fetch(`${API}/audio/${videoIdMusica}/`);
+          const resposta = await fetch(`${API_ENDPOINT}/audio/${videoIdMusica}/`);
           if (resposta.ok) {
             dados = await resposta.json();
             console.log("🎯 Resposta do Django:", dados);
           }
         } catch (fetchErr) {
-          console.log("⚠️ Rota de associação indisponível. Usando stream direto.");
+          console.log("⚠️ Rota Django indisponível. Usando stream alternativo.");
         }
 
         if (!ativo) return;
 
+        // -----------------------------------------------------
+        // RESOLUÇÃO DE STREAM EM TEMPO REAL (IGNORA CAMINHOS VAZIOS DA VERCEL)
+        // -----------------------------------------------------
         let finalAudioURL = "";
         let nomeDoAudio = `${videoIdMusica}.mp3`;
 
-        if (dados.url) {
-          if (dados.url.startsWith("http://") || dados.url.startsWith("https://")) {
-            finalAudioURL = dados.url;
-          } else {
-            finalAudioURL = new URL(dados.url, `${API}/`).href;
-          }
+        // Se o Django retornar uma URL completa válida de produção (como S3 ou Supabase Storage), nós usamos
+        if (dados.url && (dados.url.startsWith("http://") || dados.url.startsWith("https://")) && !dados.url.includes("/media/audio/")) {
+          finalAudioURL = dados.url;
         }
 
-        if (!finalAudioURL && dados.audio) {
-          if (dados.audio.startsWith("http://") || dados.audio.startsWith("https://")) {
-            finalAudioURL = dados.audio;
-          } else {
-            finalAudioURL = new URL(dados.audio, `${API}/`).href;
-          }
+        // Caso contrário, se for uma rota fantasma da Vercel (/media/audio/...), forçamos o Stream direto do YouTube
+        if (!finalAudioURL) {
+          // API pública estável com barramento de CORS livre para streams de áudio WebAudio/Tone.js
+          finalAudioURL = `https://vevioz.com{videoIdMusica}`;
+          console.log("🚀 Vercel ativa: Vinculando stream de áudio em tempo real.");
         }
 
         if (dados.audio) {
           nomeDoAudio = dados.audio;
         }
 
-        // Fallback robusto para produção serverless
-        if (!finalAudioURL) {
-          finalAudioURL = `https://vevioz.com{videoIdMusica}`;
-          console.log("🚀 Fallback ativado: Streaming direto configurado.");
-        }
-
-        console.log("🎵 URL final do áudio:", finalAudioURL);
+        console.log("🎵 URL final do áudio injetada no Tone.js:", finalAudioURL);
         setAudioNome(nomeDoAudio);
+
+        // -----------------------------------------------------
+        // INICIAR TONE & PITCH SHIFT
+        // ----------------------------------------------------
 
         console.log("🔊 Criando PitchShift...");
         const pitchShift = new Tone.PitchShift({
