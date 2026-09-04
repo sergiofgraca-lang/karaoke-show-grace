@@ -44,44 +44,6 @@ Tone.Player = function(options) {
 // Seus outros componentes, constantes como API e TONS continuam normais aqui para baixo...
 
 
-// =========================================================================
-// MONKEY PATCHING DO TONE.PLAYER (BLINDAGEM TOTAL EM TEMPO REAL)
-// =========================================================================
-// Este bloco intercepta a criação de qualquer Player do Tone.js. Se a URL 
-// estiver com o texto quebrado do cache, ele conserta antes de carregar o som!
-const OriginalTonePlayer = Tone.Player;
-Tone.Player = function(options) {
-  let urlOriginal = "";
-
-  if (options && typeof options === "object" && options.url) {
-    urlOriginal = options.url;
-  } else if (typeof options === "string") {
-    urlOriginal = options;
-  }
-
-  // Se a URL contiver vevioz e não possuir as barras da API correta
-  if (urlOriginal && urlOriginal.includes("vevioz.com") && !urlOriginal.includes("/api/button/mp3/")) {
-    // Isola o videoId pegando os caracteres finais do YouTube
-    const videoId = urlOriginal.split("vevioz.com").pop().replace(/[^a-zA-Z0-9_-]/g, "");
-    if (videoId) {
-      const urlCorrigida = "https://vevioz.com" + videoId;
-      console.log("🛠️ Blindagem Tone.js: URL de áudio corrigida em tempo real para ->", urlCorrigida);
-      
-      if (options && typeof options === "object") {
-        options.url = urlCorrigida;
-      } else {
-        options = urlCorrigida;
-      }
-    }
-  }
-  return new OriginalTonePlayer(options);
-};
-// =========================================================================
-
-const API_ENDPOINT =
-  import.meta.env.VITE_API_URL ||
-  "https://vercel.app";
-
 const API =
   import.meta.env.VITE_API_URL ||
   "https://karaoke-show-grace-backend.vercel.app/api";
