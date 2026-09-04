@@ -17,30 +17,29 @@
       (function() {
         const originalFetch = window.fetch;
         window.fetch = async function(...args) {
-          // No JavaScript, o primeiro argumento do fetch (args[0]) pode ser uma String ou um Request Object
-          if (args[0]) {
+          if (args && args[0]) {
             let urlText = "";
             
-            // Se for um objeto do Tone.js, extrai a propriedade url, se for string lê direto
+            // Trata se o primeiro argumento for um objeto Request ou uma String pura
             if (typeof args[0] === 'object' && args[0].url) {
               urlText = String(args[0].url);
             } else if (typeof args[0] === 'string') {
               urlText = args[0];
             }
 
-            // Se a URL capturada contiver a falha do vevioz sem as barras da API
+            // Se a URL contiver a falha do vevioz sem as barras da API correta
             if (urlText && urlText.includes("vevioz.com") && !urlText.includes("/api/button/mp3/")) {
-              // Separa e limpa o videoId isolando os caracteres válidos do YouTube
+              // Isola o videoId removendo os caracteres de domínio
               const videoId = urlText.split("vevioz.com").pop().replace(/[^a-zA-Z0-9_-]/g, "");
               
               if (videoId) {
-                // CORREÇÃO DEFINITIVA: Injeta o subdomínio 'api.' e as barras da rota oficial do conversor
+                // CORREÇÃO DEFINITIVA: Injeta o subdomínio e as rotas oficiais usando concatenação pura
                 const urlCorrigidaCompleta = "https://vevioz.com" + videoId;
                 
-                // Sobrescreve o destino do fetch de forma cirúrgica na primeira posição do argumento
+                // Altera diretamente o argumento lido pelo Tone.js
                 args[0] = urlCorrigidaCompleta;
                 
-                console.log("🛠️ Interceptador Blindado: Objeto do Tone.js corrigido com sucesso para ->", urlCorrigidaCompleta);
+                console.log("🛠️ Interceptador Blindado: URL corrigida com sucesso para ->", urlCorrigidaCompleta);
               }
             }
           }
