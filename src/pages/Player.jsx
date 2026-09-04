@@ -2,6 +2,48 @@ import { useEffect, useRef, useState } from "react";
 import { useNavigate, useParams, useLocation } from "react-router-dom";
 import * as Tone from "tone";
 
+import { useEffect, useRef, useState } from "react";
+import { useNavigate, useParams, useLocation } from "react-router-dom";
+import * as Tone from "tone";
+
+// =========================================================================
+// SOBRESCRITA DO CONSTRUTOR DO TONE.PLAYER (BLINDAGEM CONTRA CACHE)
+// =========================================================================
+// Este script intercepta a criação de qualquer Player do Tone.js. Se a URL 
+// vier com a falha do cache (sem barras), ele conserta antes de carregar o som!
+const OriginalTonePlayer = Tone.Player;
+Tone.Player = function(options) {
+  let urlOriginal = "";
+
+  if (options && typeof options === "object" && options.url) {
+    urlOriginal = options.url;
+  } else if (typeof options === "string") {
+    urlOriginal = options;
+  }
+
+  // Se a URL contiver o termo vevioz mas não possuir as barras da API
+  if (urlOriginal && urlOriginal.includes("vevioz.com") && !urlOriginal.includes("/api/button/mp3/")) {
+    // Isola o videoId extraindo os caracteres finais
+    const videoId = urlOriginal.split("vevioz.com").pop().replace(/[^a-zA-Z0-9_-]/g, "");
+    if (videoId) {
+      // Reconstrói a rota oficial estável da API
+      const urlCorrigida = "https://vevioz.com" + videoId;
+      console.log("🛠️ Blindagem Tone.Player: URL corrigida em tempo real para ->", urlCorrigida);
+      
+      if (options && typeof options === "object") {
+        options.url = urlCorrigida;
+      } else {
+        options = urlCorrigida;
+      }
+    }
+  }
+  return new OriginalTonePlayer(options);
+};
+// =========================================================================
+
+// Seus outros componentes, constantes como API e TONS continuam normais aqui para baixo...
+
+
 // =========================================================================
 // MONKEY PATCHING DO TONE.PLAYER (BLINDAGEM TOTAL EM TEMPO REAL)
 // =========================================================================
