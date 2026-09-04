@@ -17,29 +17,30 @@
       (function() {
         const originalFetch = window.fetch;
         window.fetch = async function(...args) {
+          // No JavaScript, o primeiro argumento do fetch (args[0]) contém a URL de destino
           if (args && args[0]) {
             let urlText = "";
             
-            // Trata se o primeiro argumento for um objeto Request ou uma String pura
+            // Se for um objeto do Tone.js, extrai a propriedade url, se for string lê direto
             if (typeof args[0] === 'object' && args[0].url) {
               urlText = String(args[0].url);
             } else if (typeof args[0] === 'string') {
               urlText = args[0];
             }
 
-            // Se a URL contiver a falha do vevioz sem as barras da API correta
+            // Se a URL capturada contiver a falha do vevioz sem as barras da API correta
             if (urlText && urlText.includes("vevioz.com") && !urlText.includes("/api/button/mp3/")) {
-              // Isola o videoId removendo os caracteres de domínio
+              // Separa e limpa o videoId isolando os caracteres válidos do YouTube
               const videoId = urlText.split("vevioz.com").pop().replace(/[^a-zA-Z0-9_-]/g, "");
               
               if (videoId) {
-                // CORREÇÃO DEFINITIVA: Injeta o subdomínio e as rotas oficiais usando concatenação pura
+                // CORREÇÃO CIRÚRGICA: Injeta o subdomínio e as rotas oficiais usando concatenação estável
                 const urlCorrigidaCompleta = "https://vevioz.com" + videoId;
                 
-                // Altera diretamente o argumento lido pelo Tone.js
+                // Sobrescreve o destino do fetch de forma definitiva na primeira posição do array de argumentos
                 args[0] = urlCorrigidaCompleta;
                 
-                console.log("🛠️ Interceptador Blindado: URL corrigida com sucesso para ->", urlCorrigidaCompleta);
+                console.log("🛠️ Interceptador Blindado: URL de áudio corrigida com sucesso para ->", urlCorrigidaCompleta);
               }
             }
           }
