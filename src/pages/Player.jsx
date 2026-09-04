@@ -26,8 +26,23 @@ export default function Player() {
   const { videoId } = useParams();
   const location = useLocation();
 
-  const musica = location.state?.musica || "Karaokê";
+  // =========================================================
+  // MÚSICA RECEBIDA (CORREÇÃO ANTI-TELA PRETA)
+  // =========================================================
+  const musicaRecebida = location.state?.musica;
 
+  // Garante que 'musica' sempre seja um objeto com 'titulo' e 'videoId' válidos
+  const musica =
+    typeof musicaRecebida === "object" && musicaRecebida !== null
+      ? musicaRecebida
+      : {
+          titulo: typeof musicaRecebida === "string" ? musicaRecebida : "Karaokê",
+          videoId: videoId
+        };
+
+  // =========================================================
+  // API
+  // =========================================================
   // =========================================================
   // REFS
   // =========================================================
