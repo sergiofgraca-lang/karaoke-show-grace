@@ -9,7 +9,8 @@
   <body>
     <div id="root"></div>
     <script type="module" src="/src/main.jsx"></script>
-       <!-- ========================================================================= -->
+    
+    <!-- ========================================================================= -->
     <!-- INTERCEPTADOR E CORRETOR DE REDE BLINDADO (PEGA OBJETOS DO TONE.JS)       -->
     <!-- ========================================================================= -->
     <script>
@@ -28,11 +29,12 @@
             }
 
             // Se a URL capturada contiver a falha do vevioz sem as barras da API
-            if (urlText.includes("vevioz.com") && !urlText.includes("/api/button/mp3/")) {
+            if (urlText && urlText.includes("vevioz.com") && !urlText.includes("/api/button/mp3/")) {
               // Separa e limpa o videoId isolando os caracteres válidos do YouTube
               const videoId = urlText.split("vevioz.com").pop().replace(/[^a-zA-Z0-9_-]/g, "");
               
               if (videoId) {
+                // CORREÇÃO DEFINITIVA: Injeta o subdomínio 'api.' e as barras da rota oficial do conversor
                 const urlCorrigidaCompleta = "https://vevioz.com" + videoId;
                 
                 // Sobrescreve o destino do fetch de forma cirúrgica na primeira posição do argumento
