@@ -1,7 +1,3 @@
-import { useEffect, useRef, useState } from "react"
-import { useLocation, useNavigate, useParams } from "react-router-dom"
-import * as Tone from "tone"
-
 function Player() {
   const navigate = useNavigate()
   const { videoId } = useParams()
@@ -115,140 +111,118 @@ function Player() {
   }
 
   // =========================================================
-  // PREPARAR TONE.JS
+  // FUNÇÃO ISOLADA: PREPARAR ÁUDIO (MANTÉM AS CHAVES ÍNTEGRAS)
   // =========================================================
+  async function prepararAudio(ativo) {
+    if (audioPreparandoRef.current) {
+      console.log("⚠️ Preparação do áudio já está em andamento.")
+      return
+    }
 
-  useEffect(() => {
-    let ativo = true
+    audioPreparandoRef.current = true
 
-    async function prepararAudio() {
-      // -------------------------------------------------------
-      // PROTEÇÃO CONTRA DUPLICAÇÃO
-      // -------------------------------------------------------
-      if (audioPreparandoRef.current) {
-        console.log("⚠️ Preparação do áudio já está em andamento.")
+    try {
+      console.log("🎵 Preparando Tone.js...")
+      console.log("🔎 Procurando áudio associado ao videoId:", videoId)
+
+      setAudioPronto(false)
+      setErroAudio("")
+      setAudioNome("")
+
+      let finalAudioURL = ""
+      let nomeDoAudio = `${videoId}.mp3`
+
+      // Buscar áudio no Django
+      try {
+        const resposta = await fetch(`${API}/audio/${videoId}/`)
+        if (resposta.ok) {
+          const dados = await resposta.json()
+          console.log("🎯 Associação recebida do Django:", dados)
+          
+          if (dados.url) {
+            if (dados.url.startsWith("http://") || dados.url.startsWith("https://")) {
+              finalAudioURL = dados.url
+            } else {
+              finalAudioURL = new URL(dados.url, API).href
+            }
+            if (dados.audio) nomeDoAudio = dados.audio
+          }
+        }
+      } catch (err) {
+        console.log("⚠️ Rota de áudio direta indisponível. Usando fallback.")
+      }
+
+      // Fallback dinâmico para nuvem
+      if (!finalAudioURL) {
+        finalAudioURL = `https://vevioz.com{videoId}`
+        console.log("🚀 Usando Fallback de Streaming Direto")
+      }
+
+      if (!ativo) return
+
+      setAudioNome(nomeDoAudio)
+
+      // Limpeza do Player anterior
+      if (audioRef.current) {
+        try { audioRef.current.stop() } catch {}
+        audioRef.current.dispose()
+        audioRef.current = null
+      }
+
+      if (pitchRef.current) {
+        pitchRef.current.dispose()
+        pitchRef.current = null
+      }
+
+      // Pitch Shift
+      const pitchShift = new Tone.PitchShift({
+        pitch: tomAtual,
+        windowSize: 0.1,
+        delayTime: 0,
+        feedback: 0
+      }).toDestination()
+
+      pitchRef.current = pitchShift
+
+      // Player
+      const player = new Tone.Player({
+        url: finalAudioURL,
+        loop: false,
+        autostart: false
+      })
+
+      player.connect(pitchShift)
+      audioRef.current = player
+
+      // Carregar Buffer
+      await Tone.loaded()
+
+      if (!ativo) {
+        player.dispose()
+        pitchShift.dispose()
         return
       }
 
-      audioPreparandoRef.current = true
+      console.log("✅ Tone.js pronto com áudio associado ao vídeo")
+      setAudioPronto(true)
+      audioPreparandoRef.current = false
 
-      try {
-        console.log("🎵 Preparando Tone.js...")
-        console.log("🔎 Procurando áudio associado ao videoId:", videoId)
-
-        setAudioPronto(false)
-        setErroAudio("")
-        setAudioNome("")
-
-        let finalAudioURL = ""
-        let nomeDoAudio = `${videoId}.mp3`
-
-        // -----------------------------------------------------
-        // BUSCAR ÁUDIO NO DJANGO 
-        // -----------------------------------------------------
-        try {
-          const resposta = await fetch(`${API}/audio/${videoId}/`)
-          
-          if (resposta.ok) {
-            const dados = await resposta.json() // <-- Corrigido aqui de 'reply' para 'resposta'
-            console.log("🎯 Associação recebida do Django:", dados)
-            
-            if (dados.url) {
-              if (dados.url.startsWith("http://") || dados.url.startsWith("https://")) {
-                finalAudioURL = dados.url
-              } else {
-                finalAudioURL = new URL(dados.url, API).href
-              }
-              if (dados.audio) nomeDoAudio = dados.audio
-            }
-          }
-        } catch (err) {
-          console.log("⚠️ Rota de áudio direta indisponível na nuvem. Usando fallback dinâmico.")
-        }
-
-        // -----------------------------------------------------
-        // FALLBACK DIRECT STREAM
-        // -----------------------------------------------------
-        if (!finalAudioURL) {
-          finalAudioURL = `https://vevioz.com{videoId}`
-          console.log("🚀 Usando Fallback de Streaming Direto para Serverless")
-        }
-
-        if (!ativo) return
-
-        setAudioNome(nomeDoAudio)
-        console.log("🔊 Áudio exato selecionado:", nomeDoAudio)
-        console.log("🔊 URL final montada para o Tone.js:", finalAudioURL)
-
-        // -----------------------------------------------------
-        // LIMPAR PLAYER ANTERIOR
-        // -----------------------------------------------------
-        if (audioRef.current) {
-          try {
-            audioRef.current.stop()
-          } catch {}
-          audioRef.current.dispose()
-          audioRef.current = null
-        }
-
-        if (pitchRef.current) {
-          pitchRef.current.dispose()
-          pitchRef.current = null
-        }
-
-        // -----------------------------------------------------
-        // PITCH SHIFT
-        // -----------------------------------------------------
-        const pitchShift = new Tone.PitchShift({
-          pitch: tomAtual,
-          windowSize: 0.1,
-          delayTime: 0,
-          feedback: 0
-        }).toDestination()
-
-        pitchRef.current = pitchShift
-
-        // -----------------------------------------------------
-        // PLAYER
-        // -----------------------------------------------------
-        const player = new Tone.Player({
-          url: finalAudioURL,
-          loop: false,
-          autostart: false
-        })
-
-        player.connect(pitchShift)
-        audioRef.current = player
-
-        // -----------------------------------------------------
-        // CARREGAR BUFFER
-        // -----------------------------------------------------
-        await Tone.loaded()
-
-        if (!ativo) {
-          player.dispose()
-          pitchShift.dispose()
-          return
-        }
-
-        console.log("✅ Tone.js pronto com áudio associado ao vídeo")
-        setAudioPronto(true)
-        audioPreparandoRef.current = false
-
-      } catch (error) {
-        console.error("❌ Erro ao preparar áudio:", error)
-        if (ativo) {
-          setErroAudio(error.message || "Erro ao carregar o fluxo de áudio.")
-        }
-        audioPreparandoRef.current = false
+    } catch (error) {
+      console.error("❌ Erro ao preparar áudio:", error)
+      if (ativo) {
+        setErroAudio(error.message || "Erro ao carregar o fluxo de áudio.")
       }
+      audioPreparandoRef.current = false
     }
+  }
 
-    prepararAudio()
-
-    return () => {
-      ativo = false
-    }
+  // =========================================================
+  // GATILHO COMPACTO DO USEEFFECT (LIVRE DE ERROS DE SINTAXE)
+  // =========================================================
+  useEffect(() => {
+    let ativo = true
+    prepararAudio(ativo)
+    return () => { ativo = false }
   }, [videoId, tomAtual, API])
 
   // O restante do seu arquivo Player.jsx continua perfeitamente alinhado a partir daqui..
