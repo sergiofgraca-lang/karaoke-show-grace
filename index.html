@@ -9,40 +9,5 @@
   <body>
     <div id="root"></div>
     <script type="module" src="/src/main.jsx"></script>
-    
-    <!-- ========================================================================= -->
-    <!-- INTERCEPTADOR E CORRETOR DE REDE BLINDADO (PEGA OBJETOS DO TONE.JS)       -->
-    <!-- ========================================================================= -->
-    <script>
-      (function() {
-        const originalFetch = window.fetch;
-        window.fetch = async function(input, init) {
-          let urlText = "";
-          
-          if (typeof input === 'string') {
-            urlText = input;
-          } else if (input && typeof input === 'object' && input.url) {
-            urlText = String(input.url);
-          }
-
-          if (urlText && urlText.includes("vevioz.com") && !urlText.includes("/api/button/mp3/")) {
-            const videoId = urlText.split("vevioz.com").pop().replace(/[^a-zA-Z0-9_-]/g, "");
-            
-            if (videoId) {
-              const urlCorrigidaCompleta = "https://vevioz.com" + videoId;
-              
-              console.log("🛠️ Interceptador Blindado: URL de áudio corrigida com sucesso para ->", urlCorrigidaCompleta);
-              
-              if (typeof input === 'string') {
-                input = urlCorrigidaCompleta;
-              } else if (input && typeof input === 'object') {
-                input = new Request(urlCorrigidaCompleta, input);
-              }
-            }
-          }
-          return originalFetch.call(this, input, init);
-        };
-      })();
-    </script>
   </body>
 </html>
