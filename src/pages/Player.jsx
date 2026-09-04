@@ -2,15 +2,9 @@ import { useEffect, useRef, useState } from "react";
 import { useNavigate, useParams, useLocation } from "react-router-dom";
 import * as Tone from "tone";
 
-import { useEffect, useRef, useState } from "react";
-import { useNavigate, useParams, useLocation } from "react-router-dom";
-import * as Tone from "tone";
-
 // =========================================================================
-// SOBRESCRITA DO CONSTRUTOR DO TONE.PLAYER (BLINDAGEM CONTRA CACHE)
+// BLINDAGEM DO TONE.PLAYER CONTRA CACHE DE REQUISIÇÕES
 // =========================================================================
-// Este script intercepta a criação de qualquer Player do Tone.js. Se a URL 
-// vier com a falha do cache (sem barras), ele conserta antes de carregar o som!
 const OriginalTonePlayer = Tone.Player;
 Tone.Player = function(options) {
   let urlOriginal = "";
@@ -21,14 +15,11 @@ Tone.Player = function(options) {
     urlOriginal = options;
   }
 
-  // Se a URL contiver o termo vevioz mas não possuir as barras da API
   if (urlOriginal && urlOriginal.includes("vevioz.com") && !urlOriginal.includes("/api/button/mp3/")) {
-    // Isola o videoId extraindo os caracteres finais
     const videoId = urlOriginal.split("vevioz.com").pop().replace(/[^a-zA-Z0-9_-]/g, "");
     if (videoId) {
-      // Reconstrói a rota oficial estável da API
       const urlCorrigida = "https://vevioz.com" + videoId;
-      console.log("🛠️ Blindagem Tone.Player: URL corrigida em tempo real para ->", urlCorrigida);
+      console.log("🛠️ Blindagem Automática: URL corrigida para ->", urlCorrigida);
       
       if (options && typeof options === "object") {
         options.url = urlCorrigida;
@@ -39,44 +30,27 @@ Tone.Player = function(options) {
   }
   return new OriginalTonePlayer(options);
 };
+
 // =========================================================================
-
-// Seus outros componentes, constantes como API e TONS continuam normais aqui para baixo...
-
-
-const API =
+// CONFIGURAÇÕES GLOBAIS DE AMBIENTE
+// =========================================================================
+const API_ENDPOINT =
   import.meta.env.VITE_API_URL ||
-  "https://karaoke-show-grace-backend.vercel.app/api";
+  "https://vercel.app";
 
-const TONS = [
-  "C",
-  "C#",
-  "D",
-  "D#",
-  "E",
-  "F",
-  "F#",
-  "G",
-  "G#",
-  "A",
-  "A#",
-  "B",
-];
+const TONS = ["C","C#","D","D#","E","F","F#","G","G#","A","A#","B"];
 
+// =========================================================================
+// COMPONENTE PRINCIPAL
+// =========================================================================
 export default function Player() {
   const navigate = useNavigate();
   const { videoId } = useParams();
   const location = useLocation();
 
-  // =========================================================
-  // MÚSICA RECEBIDA (RESOLUÇÃO COMPLETA CONTRA ERRO #31)
-  // =========================================================
+  // MÚSICA RECEBIDA (RESOLUÇÃO CONTRA ERRO #31)
   const musicaRecebida = location.state?.musica;
-
-  // 1. Criamos uma constante segura para o ID do Vídeo do YouTube
   const videoIdMusica = videoId || (typeof musicaRecebida === "object" ? musicaRecebida?.videoId : "");
-
-  // 2. Forçamos a variável 'musica' a ser estritamente uma STRING (Texto)
   const musica = 
     typeof musicaRecebida === "object" && musicaRecebida !== null
       ? musicaRecebida.titulo || "Karaokê"
@@ -84,16 +58,7 @@ export default function Player() {
         ? musicaRecebida 
         : "Karaokê";
 
-  // =========================================================
-  // API
-  // =========================================================
-  const API =
-    import.meta.env.VITE_API_URL ||
-    "https://vercel.app";
-
-  // =========================================================
   // REFS
-  // =========================================================
   const playerRef = useRef(null);
   const youtubeRef = useRef(null);
   const audioRef = useRef(null);
@@ -104,11 +69,8 @@ export default function Player() {
   const audioOffsetRef = useRef(0);
   const audioDurationRef = useRef(0);
   const youtubeApiCarregadaRef = useRef(false);
-  const audioPreparandoRef = useRef(false); // Adicionado para controle do fluxo
 
-  // =========================================================
   // STATES
-  // =========================================================
   const [audioPronto, setAudioPronto] = useState(false);
   const [audioCarregando, setAudioCarregando] = useState(true);
   const [erroAudio, setErroAudio] = useState("");
@@ -117,9 +79,7 @@ export default function Player() {
   const [tocando, setTocando] = useState(false);
   const [resultado, setResultado] = useState(null);
 
-  // =========================================================
   // LIMPAR ÁUDIO
-  // =========================================================
   function limparAudio() {
     console.log("🧹 Limpando áudio Tone.js...");
     if (sincronizacaoRef.current) {
@@ -141,13 +101,11 @@ export default function Player() {
     setAudioPronto(false);
   }
 
-  // =========================================================
-  // PREPARAR ÁUDIO (ATUALIZADO COM VIDEOIDMUSICA)
-  // =========================================================
+  // PREPARAR ÁUDIO
   useEffect(() => {
     let ativo = true;
 
-       async function prepararAudio() {
+    async function prepararAudio() {
       try {
         console.log("🎵 Preparando Tone.js...");
         console.log("🔎 Procurando áudio associado ao videoId:", videoIdMusica);
@@ -155,7 +113,6 @@ export default function Player() {
         setAudioPronto(false);
         setAudioCarregando(true);
         setErroAudio("");
-        setAudioNome("");
 
         limparAudio();
 
@@ -172,34 +129,36 @@ export default function Player() {
 
         if (!ativo) return;
 
-        // -----------------------------------------------------
-        // RESOLUÇÃO DE STREAM EM TEMPO REAL (IGNORA CAMINHOS VAZIOS DA VERCEL)
-        // -----------------------------------------------------
         let finalAudioURL = "";
         let nomeDoAudio = videoIdMusica + ".mp3";
 
-        // Se o Django retornar uma URL completa válida de produção (como S3 ou Supabase Storage), nós usamos
-        if (dados.url && (dados.url.startsWith("http://") || dados.url.startsWith("https://")) && !dados.url.includes("/media/audio/")) {
-          finalAudioURL = dados.url;
+        if (dados.url) {
+          if (dados.url.startsWith("http://") || dados.url.startsWith("https://")) {
+            finalAudioURL = dados.url;
+          } else {
+            finalAudioURL = new URL(dados.url, `${API_ENDPOINT}/`).href;
+          }
         }
 
-        // Caso contrário, se for uma rota fantasma da Vercel (/media/audio/...), forçamos o Stream direto do YouTube
-        if (!finalAudioURL || finalAudioURL.includes("{videoIdMusica}")) {
-          // Correção definitiva usando concatenação simples para blindar contra falhas de compilação
-          finalAudioURL = "https://vevioz.com" + videoIdMusica;
-          console.log("🚀 Vercel ativa: Vinculando stream de áudio em tempo real.");
+        if (!finalAudioURL && dados.audio) {
+          if (dados.audio.startsWith("http://") || dados.audio.startsWith("https://")) {
+            finalAudioURL = dados.audio;
+          } else {
+            finalAudioURL = new URL(dados.audio, `${API_ENDPOINT}/`).href;
+          }
         }
 
         if (dados.audio) {
           nomeDoAudio = dados.audio;
         }
 
-        console.log("🎵 URL final do áudio injetada no Tone.js:", finalAudioURL);
-        setAudioNome(nomeDoAudio);
+        if (!finalAudioURL || finalAudioURL.includes("/media/audio/")) {
+          finalAudioURL = "https://vevioz.com" + videoIdMusica;
+          print("🚀 Vercel ativa: Vinculando stream de áudio em tempo real.");
+        }
 
-        // -----------------------------------------------------
-        // INICIAR TONE & PITCH SHIFT
-        // -----------------------------------------------------
+        console.log("🎵 URL final do áudio:", finalAudioURL);
+        setAudioNome(nomeDoAudio);
 
         console.log("🔊 Criando PitchShift...");
         const pitchShift = new Tone.PitchShift({
@@ -250,7 +209,12 @@ export default function Player() {
     return () => {
       ativo = false;
     };
-  }, [videoIdMusica, tomAtual]); // Mapeia e vigia o videoIdMusica corretamente
+  }, [videoIdMusica, tomAtual]);
+
+  // OBTER TEMPO DO YOUTUBE
+  
+// O restante das suas 1000+ linhas originais continuam normais daqui para baixo...
+
 
   // O restante do seu arquivo (reprodução, player do youtube e layout JSX) continua normal daqui para baixo...
 
