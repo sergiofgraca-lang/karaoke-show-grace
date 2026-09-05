@@ -3,112 +3,141 @@ import { useNavigate, useParams, useLocation } from "react-router-dom";
 import * as Tone from "tone";
 
 // =========================================================================
-// BLINDAGEM DO TONE.PLAYER CONTRA CACHE DE REQUISIÇÕES
+// CONFIGURAÇÕES GLOBAIS
 // =========================================================================
-const OriginalTonePlayer = Tone.Player;
-Tone.Player = function(options) {
-  let urlOriginal = "";
 
-  if (options && typeof options === "object" && options.url) {
-    urlOriginal = options.url;
-  } else if (typeof options === "string") {
-    urlOriginal = options;
-  }
-
-  if (urlOriginal && urlOriginal.includes("vevioz.com") && !urlOriginal.includes("/api/button/mp3/")) {
-    const videoId = urlOriginal.split("vevioz.com").pop().replace(/[^a-zA-Z0-9_-]/g, "");
-    if (videoId) {
-      const urlCorrigida = "https://vevioz.com" + videoId;
-      console.log("🛠️ Blindagem Automática: URL corrigida para ->", urlCorrigida);
-      
-      if (options && typeof options === "object") {
-        options.url = urlCorrigida;
-      } else {
-        options = urlCorrigida;
-      }
-    }
-  }
-  return new OriginalTonePlayer(options);
-};
-
-// =========================================================================
-// CONFIGURAÇÕES GLOBAIS DE AMBIENTE
-// =========================================================================
 const API_ENDPOINT =
   import.meta.env.VITE_API_URL ||
-  "https://vercel.app";
+  "https://karaoke-show-grace-backend.vercel.app/api";
 
-const TONS = ["C","C#","D","D#","E","F","F#","G","G#","A","A#","B"];
+const TONS = [
+  "C",
+  "C#",
+  "D",
+  "D#",
+  "E",
+  "F",
+  "F#",
+  "G",
+  "G#",
+  "A",
+  "A#",
+  "B",
+];
 
 // =========================================================================
 // COMPONENTE PRINCIPAL
 // =========================================================================
+
 export default function Player() {
   const navigate = useNavigate();
   const { videoId } = useParams();
   const location = useLocation();
 
-  // MÚSICA RECEBIDA (RESOLUÇÃO CONTRA ERRO #31)
+  // =========================================================================
+  // MÚSICA RECEBIDA
+  // =========================================================================
+
   const musicaRecebida = location.state?.musica;
-  const videoIdMusica = videoId || (typeof musicaRecebida === "object" ? musicaRecebida?.videoId : "");
-  const musica = 
-    typeof musicaRecebida === "object" && musicaRecebida !== null
+
+  const videoIdMusica =
+    videoId ||
+    (typeof musicaRecebida === "object"
+      ? musicaRecebida?.videoId
+      : "");
+
+  const musica =
+    typeof musicaRecebida === "object" &&
+    musicaRecebida !== null
       ? musicaRecebida.titulo || "Karaokê"
-      : typeof musicaRecebida === "string" 
-        ? musicaRecebida 
+      : typeof musicaRecebida === "string"
+        ? musicaRecebida
         : "Karaokê";
 
+  // =========================================================================
   // REFS
+  // =========================================================================
+
   const playerRef = useRef(null);
   const youtubeRef = useRef(null);
   const audioRef = useRef(null);
   const pitchRef = useRef(null);
+
   const sincronizacaoRef = useRef(null);
   const youtubeTocandoRef = useRef(false);
+
   const audioStartTimeRef = useRef(null);
   const audioOffsetRef = useRef(0);
   const audioDurationRef = useRef(0);
+
   const youtubeApiCarregadaRef = useRef(false);
 
+  // =========================================================================
   // STATES
+  // =========================================================================
+
   const [audioPronto, setAudioPronto] = useState(false);
   const [audioCarregando, setAudioCarregando] = useState(true);
   const [erroAudio, setErroAudio] = useState("");
   const [audioNome, setAudioNome] = useState("");
+
   const [tomAtual, setTomAtual] = useState(0);
   const [tocando, setTocando] = useState(false);
   const [resultado, setResultado] = useState(null);
 
+  // =========================================================================
   // LIMPAR ÁUDIO
+  // =========================================================================
+
   function limparAudio() {
     console.log("🧹 Limpando áudio Tone.js...");
+
     if (sincronizacaoRef.current) {
       clearInterval(sincronizacaoRef.current);
       sincronizacaoRef.current = null;
     }
+
     if (audioRef.current) {
-      try { audioRef.current.stop(); } catch {}
-      try { audioRef.current.dispose(); } catch {}
+      try {
+        audioRef.current.stop();
+      } catch {}
+
+      try {
+        audioRef.current.dispose();
+      } catch {}
+
       audioRef.current = null;
     }
+
     if (pitchRef.current) {
-      try { pitchRef.current.dispose(); } catch {}
+      try {
+        pitchRef.current.dispose();
+      } catch {}
+
       pitchRef.current = null;
     }
+
     audioStartTimeRef.current = null;
     audioOffsetRef.current = 0;
     audioDurationRef.current = 0;
+
     setAudioPronto(false);
   }
 
+  // =========================================================================
   // PREPARAR ÁUDIO
+  // =========================================================================
+
   useEffect(() => {
     let ativo = true;
 
     async function prepararAudio() {
       try {
         console.log("🎵 Preparando Tone.js...");
-        console.log("🔎 Procurando áudio associado ao videoId:", videoIdMusica);
+        console.log(
+          "🔎 Procurando áudio associado ao videoId:",
+          videoIdMusica
+        );
 
         setAudioPronto(false);
         setAudioCarregando(true);
@@ -116,35 +145,82 @@ export default function Player() {
 
         limparAudio();
 
+        if (!videoIdMusica) {
+          setErroAudio("VideoId da música não encontrado.");
+          setAudioCarregando(false);
+          return;
+        }
+
+        // ================================================================
+        // BUSCAR ÁUDIO REAL NO DJANGO
+        // ================================================================
+
         let dados = {};
+
         try {
-          const resposta = await fetch(`${API_ENDPOINT}/audio/${videoIdMusica}/`);
+          const resposta = await fetch(
+            `${API_ENDPOINT}/audio/${videoIdMusica}/`
+          );
+
+          console.log(
+            "📡 Status da busca do áudio:",
+            resposta.status
+          );
+
           if (resposta.ok) {
             dados = await resposta.json();
-            console.log("🎯 Resposta do Django:", dados);
+
+            console.log(
+              "🎯 Resposta do Django:",
+              dados
+            );
+          } else {
+            console.error(
+              "❌ Django não encontrou áudio:",
+              resposta.status
+            );
           }
         } catch (fetchErr) {
-          console.log("⚠️ Rota Django indisponível. Usando stream alternativo.");
+          console.error(
+            "❌ Erro ao consultar o Django:",
+            fetchErr
+          );
         }
 
         if (!ativo) return;
 
+        // ================================================================
+        // DEFINIR URL REAL DO ÁUDIO
+        // ================================================================
+
         let finalAudioURL = "";
-        let nomeDoAudio = videoIdMusica + ".mp3";
+        let nomeDoAudio = `${videoIdMusica}.mp3`;
 
         if (dados.url) {
-          if (dados.url.startsWith("http://") || dados.url.startsWith("https://")) {
+          if (
+            dados.url.startsWith("http://") ||
+            dados.url.startsWith("https://")
+          ) {
             finalAudioURL = dados.url;
           } else {
-            finalAudioURL = new URL(dados.url, `${API_ENDPOINT}/`).href;
+            finalAudioURL = new URL(
+              dados.url,
+              `${API_ENDPOINT}/`
+            ).href;
           }
         }
 
         if (!finalAudioURL && dados.audio) {
-          if (dados.audio.startsWith("http://") || dados.audio.startsWith("https://")) {
+          if (
+            dados.audio.startsWith("http://") ||
+            dados.audio.startsWith("https://")
+          ) {
             finalAudioURL = dados.audio;
           } else {
-            finalAudioURL = new URL(dados.audio, `${API_ENDPOINT}/`).href;
+            finalAudioURL = new URL(
+              dados.audio,
+              `${API_ENDPOINT}/`
+            ).href;
           }
         }
 
@@ -152,28 +228,65 @@ export default function Player() {
           nomeDoAudio = dados.audio;
         }
 
-               // -----------------------------------------------------
-        // SE FOR UMA ROTA FANTASMA DA VERCEL, FORÇAMOS O STREAM DIRETO
-        // -----------------------------------------------------
-        if (!finalAudioURL || finalAudioURL.includes("/media/audio/") || finalAudioURL.includes("{videoIdMusica}")) {
-          // CORREÇÃO: Mudamos o link para a API oficial completa com todas as barras
-          finalAudioURL = "https://vevioz.com" + videoIdMusica;
-          
-          // CORREÇÃO ANTI-IMPRESSÃO: Mudamos de 'print' para 'console.log' para não abrir a janela de imprimir!
-          console.log("🚀 Vercel ativa: Vinculando stream de áudio em tempo real.");
+        // ================================================================
+        // NÃO EXISTE ÁUDIO REAL
+        // ================================================================
+
+        if (!finalAudioURL) {
+          console.error(
+            "❌ Nenhum áudio real associado à música:",
+            videoIdMusica
+          );
+
+          setErroAudio(
+            "Esta música ainda não possui um áudio real associado."
+          );
+
+          setAudioCarregando(false);
+          return;
         }
 
-        console.log("🎵 URL final do áudio:", finalAudioURL);
+        // ================================================================
+        // SEGURANÇA EXTRA
+        // NÃO ACEITAR VEVIOZ
+        // ================================================================
+
+        if (
+          finalAudioURL.toLowerCase().includes("vevioz.com")
+        ) {
+          console.error(
+            "❌ URL inválida detectada e bloqueada:",
+            finalAudioURL
+          );
+
+          setErroAudio(
+            "O áudio associado possui uma URL inválida."
+          );
+
+          setAudioCarregando(false);
+          return;
+        }
+
+        console.log(
+          "🎵 URL final do áudio:",
+          finalAudioURL
+        );
+
         setAudioNome(nomeDoAudio);
 
+        // ================================================================
+        // PITCH SHIFT
+        // ================================================================
 
         console.log("🔊 Criando PitchShift...");
-        const pitchShift = new Tone.PitchShift({
-          pitch: tomAtual,
-          windowSize: 0.1,
-          delayTime: 0,
-          feedback: 0,
-        }).toDestination();
+
+        const pitchShift =
+          new Tone.PitchShift({
+            pitch: tomAtual,
+            windowSize: 0.1,
+            delayTime: 0,
+            feedback: 0,
+          }).toDestination();
 
         if (!ativo) {
           pitchShift.dispose();
@@ -182,30 +295,70 @@ export default function Player() {
 
         pitchRef.current = pitchShift;
 
-        console.log("🔊 Inicializando buffer do Tone.Player...");
+        // ================================================================
+        // TONE PLAYER
+        // ================================================================
+
+        console.log(
+          "🔊 Inicializando buffer do Tone.Player..."
+        );
+
         const player = new Tone.Player({
           url: finalAudioURL,
           loop: false,
           autostart: false,
+
           onload: () => {
             if (!ativo) return;
-            console.log("✅ Tone.js carregado e pronto para reprodução.");
+
+            console.log(
+              "✅ Tone.js carregado e pronto para reprodução."
+            );
+
+            // Duração do áudio
+            if (player.buffer) {
+              audioDurationRef.current =
+                player.buffer.duration || 0;
+
+              console.log(
+                "⏱️ Duração do áudio:",
+                audioDurationRef.current.toFixed(2),
+                "segundos"
+              );
+            }
+
             setAudioPronto(true);
             setAudioCarregando(false);
           },
+
           onerror: (err) => {
-            console.error("❌ Erro ao carregar buffer do player:", err);
-            setErroAudio("Não foi possível processar as frequências de áudio.");
+            console.error(
+              "❌ Erro ao carregar buffer do player:",
+              err
+            );
+
+            setErroAudio(
+              "Não foi possível carregar o áudio."
+            );
+
             setAudioCarregando(false);
-          }
+          },
         }).connect(pitchShift);
 
         audioRef.current = player;
 
       } catch (error) {
-        console.error("❌ Erro no fluxo de preparação do áudio:", error);
+        console.error(
+          "❌ Erro no fluxo de preparação do áudio:",
+          error
+        );
+
         if (ativo) {
-          setErroAudio(error.message || "Erro de inicialização.");
+          setErroAudio(
+            error.message ||
+              "Erro de inicialização."
+          );
+
           setAudioCarregando(false);
         }
       }
@@ -218,41 +371,48 @@ export default function Player() {
     };
   }, [videoIdMusica, tomAtual]);
 
-  // OBTER TEMPO DO YOUTUBE
-  
-// O restante das suas 1000+ linhas originais continuam normais daqui para baixo...
-
-
-  // O restante do seu arquivo (reprodução, player do youtube e layout JSX) continua normal daqui para baixo...
-
-  // =========================================================
+  // =========================================================================
   // INICIAR ÁUDIO
-  // =========================================================
-
+  // =========================================================================
 
   async function iniciarAudio() {
     try {
       if (!audioRef.current) {
-        console.log("⚠️ Tone.Player ainda não está pronto.");
+        console.log(
+          "⚠️ Tone.Player ainda não está pronto."
+        );
         return;
       }
 
       if (!audioPronto) {
-        console.log("⚠️ Áudio ainda está carregando.");
+        console.log(
+          "⚠️ Áudio ainda está carregando."
+        );
         return;
       }
 
       const youtube = youtubeRef.current;
 
       if (!youtube) {
-        console.log("⚠️ YouTube Player ainda não está pronto.");
+        console.log(
+          "⚠️ YouTube Player ainda não está pronto."
+        );
         return;
       }
 
-      // Permissão do navegador para áudio
+      // ================================================================
+      // LIBERAR AUDIOCONTEXT APÓS INTERAÇÃO DO USUÁRIO
+      // ================================================================
+
       await Tone.start();
 
-      const tempoYoutube = youtube.getCurrentTime();
+      console.log(
+        "🔊 AudioContext:",
+        Tone.getContext().state
+      );
+
+      const tempoYoutube =
+        youtube.getCurrentTime();
 
       let offset = tempoYoutube;
 
@@ -272,7 +432,10 @@ export default function Player() {
         audioRef.current.stop();
       } catch {}
 
-      audioRef.current.start(undefined, offset);
+      audioRef.current.start(
+        undefined,
+        offset
+      );
 
       audioOffsetRef.current = offset;
       audioStartTimeRef.current = Tone.now();
@@ -280,6 +443,7 @@ export default function Player() {
       setTocando(true);
 
       iniciarSincronizacao();
+
     } catch (erro) {
       console.error(
         "❌ Erro ao iniciar áudio:",
@@ -288,9 +452,9 @@ export default function Player() {
     }
   }
 
-  // =========================================================
+  // =========================================================================
   // PAUSAR ÁUDIO
-  // =========================================================
+  // =========================================================================
 
   function pausarAudio() {
     try {
@@ -313,6 +477,7 @@ export default function Player() {
         "⏸️ Tone.js pausado em:",
         audioOffsetRef.current.toFixed(2)
       );
+
     } catch (erro) {
       console.error(
         "❌ Erro ao pausar áudio:",
@@ -321,9 +486,9 @@ export default function Player() {
     }
   }
 
-  // =========================================================
+  // =========================================================================
   // PARAR ÁUDIO
-  // =========================================================
+  // =========================================================================
 
   function pararAudio() {
     try {
@@ -336,7 +501,10 @@ export default function Player() {
 
       setTocando(false);
 
-      console.log("⏹️ Tone.js parado.");
+      console.log(
+        "⏹️ Tone.js parado."
+      );
+
     } catch (erro) {
       console.error(
         "❌ Erro ao parar áudio:",
@@ -345,9 +513,9 @@ export default function Player() {
     }
   }
 
-  // =========================================================
+  // =========================================================================
   // SINCRONIZAÇÃO YOUTUBE ↔ TONE
-  // =========================================================
+  // =========================================================================
 
   function sincronizarAudioComYouTube() {
     const youtube = youtubeRef.current;
@@ -365,25 +533,38 @@ export default function Player() {
       const tempoYoutube =
         youtube.getCurrentTime();
 
-      let tempoTone = audioOffsetRef.current;
+      let tempoTone =
+        audioOffsetRef.current;
 
-      if (audioStartTimeRef.current !== null) {
+      if (
+        audioStartTimeRef.current !== null
+      ) {
         tempoTone =
           audioOffsetRef.current +
-          (Tone.now() -
-            audioStartTimeRef.current);
+          (
+            Tone.now() -
+            audioStartTimeRef.current
+          );
       }
 
       const diferenca =
-        Math.abs(tempoYoutube - tempoTone);
+        Math.abs(
+          tempoYoutube -
+          tempoTone
+        );
 
       if (diferenca > 0.4) {
         console.log(
           "🔄 Corrigindo sincronização:",
           {
-            youtube: tempoYoutube.toFixed(2),
-            tone: tempoTone.toFixed(2),
-            diferenca: diferenca.toFixed(2),
+            youtube:
+              tempoYoutube.toFixed(2),
+
+            tone:
+              tempoTone.toFixed(2),
+
+            diferenca:
+              diferenca.toFixed(2),
           }
         );
 
@@ -402,6 +583,7 @@ export default function Player() {
         audioStartTimeRef.current =
           Tone.now();
       }
+
     } catch (erro) {
       console.log(
         "⚠️ Erro na sincronização:",
@@ -410,9 +592,9 @@ export default function Player() {
     }
   }
 
-  // =========================================================
+  // =========================================================================
   // INICIAR SINCRONIZAÇÃO
-  // =========================================================
+  // =========================================================================
 
   function iniciarSincronizacao() {
     if (sincronizacaoRef.current) {
@@ -425,9 +607,9 @@ export default function Player() {
       }, 500);
   }
 
-  // =========================================================
+  // =========================================================================
   // YOUTUBE PLAYER
-  // =========================================================
+  // =========================================================================
 
   useEffect(() => {
     let ativo = true;
@@ -435,7 +617,10 @@ export default function Player() {
     function criarYoutubePlayer() {
       if (!ativo) return;
 
-      if (!window.YT || !window.YT.Player) {
+      if (
+        !window.YT ||
+        !window.YT.Player
+      ) {
         console.log(
           "⏳ YouTube API ainda não carregada..."
         );
@@ -472,17 +657,24 @@ export default function Player() {
               },
 
               events: {
+                // ======================================================
+                // YOUTUBE PRONTO
+                // ======================================================
+
                 onReady: (event) => {
                   console.log(
                     "✅ YouTube Player pronto."
                   );
 
-                  // IMPORTANTE:
-                  // O áudio original do YouTube fica mudo.
+                  // Silencia o áudio original do YouTube
                   event.target.mute();
 
                   iniciarSincronizacao();
                 },
+
+                // ======================================================
+                // MUDANÇA DE ESTADO
+                // ======================================================
 
                 onStateChange: (event) => {
                   const estado =
@@ -528,10 +720,6 @@ export default function Player() {
                     console.log(
                       "⏳ YouTube BUFFERING"
                     );
-
-                    // Não paramos o áudio imediatamente.
-                    // O controle de sincronização
-                    // cuidará da correção.
                   }
 
                   // ENDED
@@ -554,6 +742,7 @@ export default function Player() {
               },
             }
           );
+
       } catch (erro) {
         console.error(
           "❌ Erro ao criar YouTube Player:",
@@ -562,9 +751,9 @@ export default function Player() {
       }
     }
 
-    // -------------------------------------------------------
+    // ================================================================
     // API JÁ EXISTE
-    // -------------------------------------------------------
+    // ================================================================
 
     if (
       window.YT &&
@@ -574,10 +763,12 @@ export default function Player() {
         true;
 
       criarYoutubePlayer();
+
     } else {
-      // -----------------------------------------------------
+
+      // ==============================================================
       // CARREGAR API
-      // -----------------------------------------------------
+      // ==============================================================
 
       console.log(
         "📡 Carregando YouTube IFrame API..."
@@ -626,13 +817,19 @@ export default function Player() {
       }
     }
 
+    // ================================================================
+    // LIMPEZA
+    // ================================================================
+
     return () => {
       ativo = false;
 
       youtubeTocandoRef.current =
         false;
 
-      if (sincronizacaoRef.current) {
+      if (
+        sincronizacaoRef.current
+      ) {
         clearInterval(
           sincronizacaoRef.current
         );
@@ -653,17 +850,17 @@ export default function Player() {
 
       youtubeRef.current = null;
     };
+
   }, [videoId]);
 
-  // =========================================================
+  // =========================================================================
   // ALTERAR TOM
-  // =========================================================
+  // =========================================================================
 
   function aumentarTom() {
     setTomAtual((atual) => {
       const novoTom = atual + 1;
 
-      // Limita entre -12 e +12 semitons
       const valor =
         novoTom > 12
           ? 12
@@ -691,7 +888,6 @@ export default function Player() {
     setTomAtual((atual) => {
       const novoTom = atual - 1;
 
-      // Limita entre -12 e +12 semitons
       const valor =
         novoTom < -12
           ? -12
@@ -715,9 +911,9 @@ export default function Player() {
     });
   }
 
-  // =========================================================
+  // =========================================================================
   // TOM VISUAL
-  // =========================================================
+  // =========================================================================
 
   const indiceTomVisual =
     ((tomAtual % 12) + 12) % 12;
@@ -725,9 +921,9 @@ export default function Player() {
   const nomeTom =
     TONS[indiceTomVisual];
 
-  // =========================================================
+  // =========================================================================
   // RESULTADO
-  // =========================================================
+  // =========================================================================
 
   function mostrarResultado() {
     const notas = [
@@ -756,7 +952,7 @@ export default function Player() {
       notas[
         Math.floor(
           Math.random() *
-            notas.length
+          notas.length
         )
       ];
 
@@ -764,7 +960,7 @@ export default function Player() {
       mensagens[
         Math.floor(
           Math.random() *
-            mensagens.length
+          mensagens.length
         )
       ];
 
@@ -784,19 +980,21 @@ export default function Player() {
       aplausos
         .play()
         .catch(() => {});
+
     } catch {}
   }
 
-  // =========================================================
+  // =========================================================================
   // SALVAR NA PLAYLIST
-  // =========================================================
+  // =========================================================================
 
   async function salvarNaPlaylist() {
     try {
-      const cantor = window.prompt(
-        "Digite o nome do cantor:",
-        ""
-      );
+      const cantor =
+        window.prompt(
+          "Digite o nome do cantor:",
+          ""
+        );
 
       if (!cantor) {
         return;
@@ -804,7 +1002,7 @@ export default function Player() {
 
       const resposta =
         await fetch(
-          `${API}/salvar/`,
+          `${API_ENDPOINT}/salvar/`,
           {
             method: "POST",
 
@@ -839,6 +1037,7 @@ export default function Player() {
       alert(
         "🎵 Música salva na playlist!"
       );
+
     } catch (erro) {
       console.error(
         "❌ Erro ao salvar playlist:",
@@ -852,9 +1051,9 @@ export default function Player() {
     }
   }
 
-  // =========================================================
+  // =========================================================================
   // TELA DE RESULTADO
-  // =========================================================
+  // =========================================================================
 
   if (resultado) {
     return (
@@ -936,9 +1135,9 @@ export default function Player() {
     );
   }
 
-  // =========================================================
+  // =========================================================================
   // JSX PRINCIPAL
-  // =========================================================
+  // =========================================================================
 
   return (
     <div
@@ -949,6 +1148,7 @@ export default function Player() {
         padding: "20px",
       }}
     >
+
       {/* =====================================================
           TÍTULO
       ====================================================== */}
@@ -1010,6 +1210,7 @@ export default function Player() {
           textAlign: "center",
         }}
       >
+
         {audioCarregando && (
           <div>
             ⏳ Preparando áudio...
@@ -1040,6 +1241,7 @@ export default function Player() {
             ❌ {erroAudio}
           </div>
         )}
+
       </div>
 
       {/* =====================================================
@@ -1056,6 +1258,7 @@ export default function Player() {
           textAlign: "center",
         }}
       >
+
         <h2>
           🎵 Tonalidade
         </h2>
@@ -1098,6 +1301,7 @@ export default function Player() {
             gap: "15px",
           }}
         >
+
           <button
             onClick={diminuirTom}
             disabled={
@@ -1147,6 +1351,7 @@ export default function Player() {
           >
             +
           </button>
+
         </div>
       </div>
 
@@ -1165,6 +1370,7 @@ export default function Player() {
           flexWrap: "wrap",
         }}
       >
+
         <button
           onClick={salvarNaPlaylist}
           style={{
@@ -1190,6 +1396,7 @@ export default function Player() {
         >
           ← Voltar
         </button>
+
       </div>
 
       {/* =====================================================
@@ -1205,6 +1412,7 @@ export default function Player() {
           fontSize: "14px",
         }}
       >
+
         <p>
           🎧 O áudio original do
           YouTube está silenciado.
@@ -1220,7 +1428,10 @@ export default function Player() {
           🎚️ Use + e − para alterar o
           tom em semitons.
         </p>
+
       </div>
+
     </div>
   );
 }
+
