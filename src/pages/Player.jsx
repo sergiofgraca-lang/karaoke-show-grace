@@ -189,90 +189,122 @@ export default function Player() {
 
         if (!ativo) return;
 
-        // ================================================================
-        // DEFINIR URL REAL DO ÁUDIO
-        // ================================================================
+      
+// ================================================================
+// DEFINIR URL REAL DO ÁUDIO
+// ================================================================
 
-        let finalAudioURL = "";
-        let nomeDoAudio = `${videoIdMusica}.mp3`;
+let finalAudioURL = "";
+let nomeDoAudio = `${videoIdMusica}.mp3`;
 
-        if (dados.url) {
-          if (
-            dados.url.startsWith("http://") ||
-            dados.url.startsWith("https://")
-          ) {
-            finalAudioURL = dados.url;
-          } else {
-            finalAudioURL = new URL(
-              dados.url,
-              `${API_ENDPOINT}/`
-            ).href;
-          }
-        }
+// ================================================================
+// USAR PRIMEIRO A URL ASSINADA DO SUPABASE
+// ================================================================
 
-        if (!finalAudioURL && dados.audio) {
-          if (
-            dados.audio.startsWith("http://") ||
-            dados.audio.startsWith("https://")
-          ) {
-            finalAudioURL = dados.audio;
-          } else {
-            finalAudioURL = new URL(
-              dados.audio,
-              `${API_ENDPOINT}/`
-            ).href;
-          }
-        }
+if (dados.audio_url) {
+  if (
+    dados.audio_url.startsWith("http://") ||
+    dados.audio_url.startsWith("https://")
+  ) {
+    finalAudioURL = dados.audio_url;
+  } else {
+    finalAudioURL = new URL(
+      dados.audio_url,
+      `${API_ENDPOINT}/`
+    ).href;
+  }
+}
 
-        if (dados.audio) {
-          nomeDoAudio = dados.audio;
-        }
+// ================================================================
+// COMPATIBILIDADE COM URL ANTIGA
+// ================================================================
 
-        // ================================================================
-        // NÃO EXISTE ÁUDIO REAL
-        // ================================================================
+if (!finalAudioURL && dados.url) {
+  if (
+    dados.url.startsWith("http://") ||
+    dados.url.startsWith("https://")
+  ) {
+    finalAudioURL = dados.url;
+  } else {
+    finalAudioURL = new URL(
+      dados.url,
+      `${API_ENDPOINT}/`
+    ).href;
+  }
+}
 
-        if (!finalAudioURL) {
-          console.error(
-            "❌ Nenhum áudio real associado à música:",
-            videoIdMusica
-          );
+// ================================================================
+// COMPATIBILIDADE COM CAMPO audio
+// ================================================================
 
-          setErroAudio(
-            "Esta música ainda não possui um áudio real associado."
-          );
+if (!finalAudioURL && dados.audio) {
+  if (
+    dados.audio.startsWith("http://") ||
+    dados.audio.startsWith("https://")
+  ) {
+    finalAudioURL = dados.audio;
+  } else {
+    finalAudioURL = new URL(
+      dados.audio,
+      `${API_ENDPOINT}/`
+    ).href;
+  }
+}
 
-          setAudioCarregando(false);
-          return;
-        }
+if (dados.audio_url) {
+  nomeDoAudio = `${videoIdMusica}.mp3`;
+} else if (dados.audio) {
+  nomeDoAudio = dados.audio;
+}
 
-        // ================================================================
-        // SEGURANÇA EXTRA
-        // NÃO ACEITAR VEVIOZ
-        // ================================================================
+// ================================================================
+// NÃO EXISTE ÁUDIO REAL
+// ================================================================
 
-        if (
-          finalAudioURL.toLowerCase().includes("vevioz.com")
-        ) {
-          console.error(
-            "❌ URL inválida detectada e bloqueada:",
-            finalAudioURL
-          );
+if (!finalAudioURL) {
+  console.error(
+    "❌ Nenhum áudio real associado à música:",
+    videoIdMusica
+  );
 
-          setErroAudio(
-            "O áudio associado possui uma URL inválida."
-          );
+  setErroAudio(
+    "Esta música ainda não possui um áudio real associado."
+  );
 
-          setAudioCarregando(false);
-          return;
-        }
+  setAudioCarregando(false);
+  return;
+}
 
-        console.log(
-          "🎵 URL final do áudio:",
-          finalAudioURL
-        );
+// ================================================================
+// SEGURANÇA EXTRA
+// NÃO ACEITAR VEVIOZ
+// ================================================================
 
-        setAudioNome(nomeDoAudio);
+if (
+  finalAudioURL.toLowerCase().includes("vevioz.com")
+) {
+  console.error(
+    "❌ URL inválida detectada e bloqueada:",
+    finalAudioURL
+  );
+
+  setErroAudio(
+    "O áudio associado possui uma URL inválida."
+  );
+
+  setAudioCarregando(false);
+  return;
+}
+
+console.log(
+  "🎵 URL final do áudio:",
+  finalAudioURL
+);
+
+setAudioNome(nomeDoAudio);
+
+
+
 
         // ================================================================
         // PITCH SHIFT

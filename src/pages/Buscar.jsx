@@ -153,30 +153,19 @@ function Buscar() {
         "💾 Salvando música no Django:",
         musica
       )
+// Procure por algo parecido com isso na linha ~158 do Buscar.jsx:
+// const resposta = await fetch("http://127.0.0", { ... })
 
-      const res =
-        await fetch(
-          `${API}/salvar/`,
-          {
-            method: "POST",
+// SUBSTITUA POR ESTE FORMATO DINÂMICO QUE LÊ A VERCEL:
+const API_URL = import.meta.env.VITE_API_URL || "https://vercel.app";
+const resposta = await fetch(`${API_URL}/salvar/`, {
+  method: "POST",
+  headers: {
+    "Content-Type": "application/json",
+  },
+  body: JSON.stringify(dadosMusica),
+});
 
-            headers: {
-              "Content-Type":
-                "application/json"
-            },
-
-            body: JSON.stringify({
-              titulo:
-                musica.titulo,
-
-              videoId:
-                musica.videoId,
-
-              cantor:
-                musica.cantor
-            })
-          }
-        )
 
       console.log(
         "📡 Status Django:",
