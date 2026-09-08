@@ -157,14 +157,22 @@ function Buscar() {
 // const resposta = await fetch("http://127.0.0", { ... })
 
 // SUBSTITUA POR ESTE FORMATO DINÂMICO QUE LÊ A VERCEL:
+// Localize a função de salvamento perto da linha ~152 no Buscar.jsx e mude o body para:
 const API_URL = import.meta.env.VITE_API_URL || "https://vercel.app";
+
 const resposta = await fetch(`${API_URL}/salvar/`, {
   method: "POST",
   headers: {
     "Content-Type": "application/json",
   },
-  body: JSON.stringify(dadosMusica),
+  // Mudamos de dadosMusica para enviar as chaves estruturadas diretamente
+  body: JSON.stringify({
+    videoId: musicaSelecionada.videoId || videoId,
+    titulo: musicaSelecionada.titulo || titulo,
+    cantor: cantor || "Sergio"
+  }),
 });
+
 
 
       console.log(
