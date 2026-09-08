@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 
-function Buscar() {
+export default function Buscar() {
   const [busca, setBusca] = useState("");
   const [videos, setVideos] = useState([]);
 
@@ -21,7 +21,7 @@ function Buscar() {
   const API =
     import.meta.env.VITE_API_URL && import.meta.env.VITE_API_URL !== "undefined"
       ? import.meta.env.VITE_API_URL
-      : "https://karaoke-show-grace-backend.vercel.app/api";
+      : "https://vercel.app";
 
   // =========================================================
   // BUSCAR MÚSICA NO YOUTUBE (MÁXIMO 10 RESULTADOS)
@@ -35,7 +35,7 @@ function Buscar() {
       console.log("🔎 Buscando no YouTube:", busca);
 
       const url =
-        `https://www.googleapis.com/youtube/v3/search` +
+        `https://googleapis.com` +
         `?part=snippet` +
         `&q=${encodeURIComponent(busca)}+karaoke` +
         `&type=video` +
@@ -82,17 +82,6 @@ function Buscar() {
 
     console.log("🎵 Música selecionada para o formulário:", infoMusica);
     setMusicaSelecionada(infoMusica);
-  }
-
-
-       const musica = {
-      titulo: video.snippet?.title || "Karaokê",
-      videoId,
-      cantor: ""
-    };
-
-    console.log("🎵 Música selecionada:", musica);
-    setMusicaSelecionada(musica);
     setCantor("");
   }
 
@@ -101,7 +90,6 @@ function Buscar() {
   // =========================================================
   async function salvarMusica(musicaItem) {
     try {
-      // Usa a constante global 'API' já declarada no topo do seu arquivo
       const idDoVideo = musicaItem?.videoId || musicaSelecionada?.videoId;
       const tituloDaMusica = musicaItem?.titulo || musicaSelecionada?.titulo || "Karaoke";
 
@@ -151,254 +139,67 @@ function Buscar() {
   // =========================================================
   // CANCELAR SELEÇÃO
   // =========================================================
-
-
   function cancelarSelecao() {
-    setMusicaSelecionada(null)
-    setCantor("")
+    setMusicaSelecionada(null);
+    setCantor("");
   }
 
-  // =========================================================
-  // TELA
-  // =========================================================
-
   return (
-    <div
-      style={{
-        padding: "20px",
-        textAlign: "center",
-        color: "#fff"
-      }}
-    >
-      {/* =====================================================
-          VOLTAR
-      ===================================================== */}
-
-      <button
-        onClick={() =>
-          navigate("/")
-        }
-      >
-        ⬅ Voltar
-      </button>
-
-      <h1>
-        🔎 Buscar Música
-      </h1>
-
-      {/* =====================================================
-          BUSCA
-      ===================================================== */}
-
-      <input
-        value={busca}
-        onChange={(e) =>
-          setBusca(e.target.value)
-        }
-        onKeyDown={(e) => {
-          if (e.key === "Enter") {
-            buscarMusica()
-          }
-        }}
-        placeholder="Digite a música"
-        style={{
-          padding: "10px",
-          width: "70%"
-        }}
-      />
-
-      <br />
-      <br />
-
-      <button
-        onClick={
-          buscarMusica
-        }
-      >
-        🔎 Buscar
-      </button>
-
-      {/* =====================================================
-          FORMULÁRIO DA MÚSICA SELECIONADA
-      ===================================================== */}
+    <div style={{ padding: "20px", maxWidth: "600px", margin: "0 auto", fontFamily: "sans-serif" }}>
+      <h2>🔎 Buscar Karaokê</h2>
+      
+      <div style={{ display: "flex", gap: "10px", marginBottom: "20px" }}>
+        <input
+          type="text"
+          value={busca}
+          onChange={(e) => setBusca(e.target.value)}
+          placeholder="Digite o nome da música ou artista..."
+          style={{ flex: 1, padding: "10px", borderRadius: "5px", border: "1px solid #ccc" }}
+          onKeyDown={(e) => e.key === "Enter" && buscarMusica()}
+        />
+        <button onClick={buscarMusica} style={{ padding: "10px 20px", borderRadius: "5px", border: "none", backgroundColor: "#007bff", color: "#fff", cursor: "pointer" }}>
+          Buscar
+        </button>
+      </div>
 
       {musicaSelecionada && (
-        <div
-          style={{
-            maxWidth: "600px",
-            margin: "30px auto",
-            padding: "20px",
-            backgroundColor:
-              "#1e1e1e",
-            borderRadius: "12px"
-          }}
-        >
-          <h2>
-            🎵 Música selecionada
-          </h2>
-
-          <p>
-            <strong>
-              {musicaSelecionada.titulo}
-            </strong>
-          </p>
-
-          <p
-            style={{
-              color: "#aaa",
-              fontSize: "14px"
-            }}
-          >
-            VideoId:{" "}
-            {musicaSelecionada.videoId}
-          </p>
-
-          {/* =================================================
-              CANTOR / ARTISTA
-          ================================================= */}
-
-          <div
-            style={{
-              marginTop: "20px"
-            }}
-          >
-            <label
-              style={{
-                display: "block",
-                marginBottom: "8px",
-                fontWeight: "bold"
-              }}
-            >
-              🎤 Cantor / Artista
-            </label>
-
+        <div style={{ padding: "15px", border: "1px solid #28a745", borderRadius: "5px", backgroundColor: "#e2f0d9", marginBottom: "20px" }}>
+          <h4>📌 Confirmar Cadastro</h4>
+          <p><strong>Música:</strong> {musicaSelecionada.titulo}</p>
+          <div style={{ marginBottom: "10px" }}>
+            <label style={{ display: "block", marginBottom: "5px" }}>Cantor/Cantora:</label>
             <input
+              type="text"
               value={cantor}
-              onChange={(e) =>
-                setCantor(
-                  e.target.value
-                )
-              }
-              onKeyDown={(e) => {
-                if (
-                  e.key === "Enter"
-                ) {
-                  salvarMusica()
-                }
-              }}
-              placeholder="Digite o nome do cantor ou artista"
-              autoFocus
-              style={{
-                padding: "12px",
-                width: "90%",
-                maxWidth: "450px",
-                borderRadius: "6px",
-                border: "1px solid #555",
-                fontSize: "16px"
-              }}
+              onChange={(e) => setCantor(e.target.value)}
+              placeholder="Quem vai cantar?"
+              style={{ width: "100%", padding: "8px", boxSizing: "border-box" }}
             />
           </div>
-
-          {/* =================================================
-              BOTÕES
-          ================================================= */}
-
-          <div
-            style={{
-              marginTop: "20px",
-              display: "flex",
-              justifyContent:
-                "center",
-              gap: "10px"
-            }}
-          >
-            <button
-              onClick={
-                salvarMusica
-              }
-              style={{
-                padding:
-                  "10px 20px",
-                cursor:
-                  "pointer"
-              }}
-            >
-              💾 Salvar e Abrir
+          <div style={{ display: "flex", gap: "10px" }}>
+            <button onClick={() => salvarMusica(musicaSelecionada)} style={{ padding: "8px 15px", backgroundColor: "#28a745", color: "#fff", border: "none", borderRadius: "3px", cursor: "pointer" }}>
+              Salvar na Playlist
             </button>
-
-            <button
-              onClick={
-                cancelarSelecao
-              }
-              style={{
-                padding:
-                  "10px 20px",
-                cursor:
-                  "pointer"
-              }}
-            >
-              ❌ Cancelar
+            <button onClick={cancelarSelecao} style={{ padding: "8px 15px", backgroundColor: "#dc3545", color: "#fff", border: "none", borderRadius: "3px", cursor: "pointer" }}>
+              Cancelar
             </button>
           </div>
         </div>
       )}
 
-      {/* =====================================================
-          RESULTADOS
-      ===================================================== */}
-
-      <div
-        style={{
-          marginTop: "20px"
-        }}
-      >
-        {videos.map(
-          (video) => {
-            const videoId =
-              video.id.videoId
-
-            const titulo =
-              video.snippet?.title ||
-              "Karaokê"
-
-            return (
-              <div
-                key={videoId}
-                onClick={() =>
-                  selecionarMusica(
-                    video
-                  )
-                }
-                style={{
-                  cursor:
-                    "pointer",
-                  marginBottom:
-                    "15px",
-                  padding: "10px",
-                  borderRadius:
-                    "10px"
-                }}
-              >
-                <img
-                  src={
-                    video.snippet
-                      .thumbnails
-                      .medium.url
-                  }
-                  width="120"
-                  alt={titulo}
-                />
-
-                <p>
-                  {titulo}
-                </p>
-              </div>
-            )
-          }
-        )}
+      <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+        {videos.map((video) => (
+          <div key={video.id.videoId} style={{ display: "flex", gap: "15px", padding: "10px", border: "1px solid #eee", borderRadius: "5px", alignItems: "center" }}>
+            <img src={video.snippet?.thumbnails?.default?.url} alt="thumbnail" style={{ width: "120px", borderRadius: "3px" }} />
+            <div style={{ flex: 1 }}>
+              <h4 style={{ margin: "0 0 5px 0", fontSize: "14px" }}>{video.snippet?.title}</h4>
+              <button onClick={() => selecionarMusica(video)} style={{ padding: "5px 10px", backgroundColor: "#6c757d", color: "#fff", border: "none", borderRadius: "3px", cursor: "pointer" }}>
+                Selecionar
+              </button>
+            </div>
+          </div>
+        ))}
       </div>
     </div>
-  )
-
-
-export default Buscar
+  );
+}
