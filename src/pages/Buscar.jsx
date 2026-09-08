@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 
-export default function Buscar() {
+function Buscar() {
   const [busca, setBusca] = useState("");
   const [videos, setVideos] = useState([]);
 
@@ -21,18 +21,9 @@ export default function Buscar() {
   const API =
     import.meta.env.VITE_API_URL && import.meta.env.VITE_API_URL !== "undefined"
       ? import.meta.env.VITE_API_URL
-      : "https://vercel.app";
+      : "https://karaoke-show-grace-backend.vercel.app/api";
 
   // =========================================================
-  // BUSCAR MÚSICA NO YOUTUBE (MÁXIMO 10 RESULTADOS)
-  // =========================================================
-    // =========================================================
-  // BUSCAR MÚSICA NO YOUTUBE (MÁXIMO 10 RESULTADOS)
-  // =========================================================
-   // =========================================================
-  // BUSCAR MÚSICA NO YOUTUBE (MÁXIMO 10 RESULTADOS)
-  // =========================================================
-    // =========================================================
   // BUSCAR MÚSICA NO YOUTUBE (MÁXIMO 10 RESULTADOS)
   // =========================================================
   async function buscarMusica() {
@@ -43,18 +34,20 @@ export default function Buscar() {
     try {
       console.log("🔎 Buscando no YouTube:", busca);
 
-      // CORREÇÃO IMUTÁVEL: Uso do operador "+" com aspas duplas para anular falhas de compilação
-      const url = "https://googleapis.com" + 
-                  encodeURIComponent(busca) + 
-                  "+karaoke&type=video&maxResults=10&key=" + 
-                  API_KEY;
+      const url =
+        `https://www.googleapis.com/youtube/v3/search` +
+        `?part=snippet` +
+        `&q=${encodeURIComponent(busca)}+karaoke` +
+        `&type=video` +
+        `&maxResults=10` +
+        `&key=${API_KEY}`;
 
       const res = await fetch(url);
       const data = await res.json();
 
       if (!res.ok) {
-        console.error("❌ Erro retornado pela API do YouTube");
-        alert("Erro ao buscar músicas no YouTube. Verifique sua cota diária.");
+        console.error("❌ Erro YouTube:", data);
+        alert("Erro ao buscar músicas no YouTube.");
         return;
       }
 
@@ -66,11 +59,10 @@ export default function Buscar() {
       setVideos(filtrados);
 
     } catch (err) {
-      console.error("❌ Erro de rede ou CORS ao conectar no YouTube");
+      console.error("❌ Erro ao buscar:", err);
       alert("Erro ao buscar no YouTube.");
     }
   }
-
 
   // =========================================================
   // SELECIONAR MÚSICA DA LISTA DO YOUTUBE
@@ -90,124 +82,348 @@ export default function Buscar() {
 
     console.log("🎵 Música selecionada para o formulário:", infoMusica);
     setMusicaSelecionada(infoMusica);
-    setCantor("");
   }
 
-  // =========================================================
-  // SALVAR MÚSICA NO DJANGO (ENVIO PRO SUPABASE STORAGE)
-  // =========================================================
-  async function salvarMusica(musicaItem) {
-    try {
-      const idDoVideo = musicaItem?.videoId || musicaSelecionada?.videoId;
-      const tituloDaMusica = musicaItem?.titulo || musicaSelecionada?.titulo || "Karaoke";
 
-      console.log("💾 Salvando música no Django:", {
-        videoId: idDoVideo,
-        titulo: tituloDaMusica
-      });
+    const musica = {
+      titulo:
+        video.snippet?.title ||
+        "Karaokê",
 
-      if (!idDoVideo) {
-        console.warn("⚠️ Operação cancelada: videoId não encontrado.");
-        return;
-      }
+      videoId,
 
-      const resposta = await fetch(`${API}/salvar/`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          videoId: idDoVideo,
-          titulo: tituloDaMusica,
-          cantor: cantor || "Sergio"
-        }),
-      });
-
-      if (!resposta.ok) {
-        throw new Error("Não foi possível processar o áudio do YouTube.");
-      }
-
-      const dados = await resposta.json();
-      console.log("📡 Resposta Django recebida com sucesso:", dados);
-
-      if (dados && (dados.id || dados.videoId)) {
-        console.log("🎬 Redirecionando para o Player com o ID:", idDoVideo);
-        navigate(`/player/${idDoVideo}`, { 
-          state: { musica: dados } 
-        });
-      } else {
-        throw new Error("Dados de retorno inválidos do servidor.");
-      }
-
-    } catch (erro) {
-      console.error("❌ Erro ao salvar música:", erro);
+      cantor: ""
     }
+
+    console.log(
+      "🎵 Música selecionada:",
+      musica
+    )
+
+    setMusicaSelecionada(
+      musica
+    )
+
+    setCantor("")
   }
+
+  // =========================================================
+  // SALVAR MÚSICA NO DJANGO
+  // =========================================================
+
+ // =========================================================================
+// BLOCO DE SALVAMENTO CORRIGIDO (LINHAS 133 A 176)
+// =========================================================================
+// =========================================================================
+// BLOCO DE SALVAMENTO CORRIGIDO (MAPEAMENTO DAS PROPRIEDADES DO YOUTUBE)
+// =========================================================================
+async function salvarMusica(musica) { // <--- Mudamos o parâmetro para 'musica' pura
+  try {
+    const API_URL = import.meta.env.VITE_API_URL || "https://vercel.app";
+
+    // Captura as chaves reais que o seu objeto do YouTube usa na listagem
+    const idDoVideo = musica.videoId || musica.id?.videoId || musica.id;
+    const tituloDaMusica = musica.titulo || musica.snippet?.title;
+
+    console.log("💾 Salvando música no Django:", {
+      videoId: idDoVideo,
+      titulo: tituloDaMusica
+    });
+
+    if (!idDoVideo) {
+      throw new Error("ID do vídeo inválido ou não encontrado.");
+    }
+
+    // Faz o disparo utilizando estritamente a variável 'resposta'
+    const resposta = await fetch(`${API_URL}/salvar/`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        videoId: idDoVideo,
+        titulo: tituloDaMusica || "Karaoke",
+        cantor: cantor || "Sergio"
+      }),
+    });
+
+    // Valida o status de rede utilizando a variável 'resposta'
+    if (!resposta.ok) {
+      throw new Error("Não foi possível processar o áudio do YouTube.");
+    }
+
+    // Converte os dados do json utilizando a variável 'resposta'
+    const dados = await resposta.json();
+    console.log("📡 Resposta Django recebida com sucesso:", dados);
+
+    // Se o servidor salvou ou localizou a música, faz o redirecionamento automático
+    if (dados && (dados.id || dados.videoId)) {
+      console.log("🎬 Redirecionando para o Player com o ID:", idDoVideo);
+      navigate(`/player/${idDoVideo}`, { 
+        state: { musica: dados } 
+      });
+    } else {
+      throw new Error("Dados de retorno inválidos do servidor.");
+    }
+
+  } catch (erro) {
+    console.error("❌ Erro ao salvar música:", erro);
+  }
+}
+// =========================================================================
+
+// =========================================================================
 
   // =========================================================
   // CANCELAR SELEÇÃO
   // =========================================================
+
   function cancelarSelecao() {
-    setMusicaSelecionada(null);
-    setCantor("");
+    setMusicaSelecionada(null)
+    setCantor("")
   }
 
+  // =========================================================
+  // TELA
+  // =========================================================
+
   return (
-    <div style={{ padding: "20px", maxWidth: "600px", margin: "0 auto", fontFamily: "sans-serif" }}>
-      <h2>🔎 Buscar Karaokê</h2>
-      
-      <div style={{ display: "flex", gap: "10px", marginBottom: "20px" }}>
-        <input
-          type="text"
-          value={busca}
-          onChange={(e) => setBusca(e.target.value)}
-          placeholder="Digite o nome da música ou artista..."
-          style={{ flex: 1, padding: "10px", borderRadius: "5px", border: "1px solid #ccc" }}
-          onKeyDown={(e) => e.key === "Enter" && buscarMusica()}
-        />
-        <button onClick={buscarMusica} style={{ padding: "10px 20px", borderRadius: "5px", border: "none", backgroundColor: "#007bff", color: "#fff", cursor: "pointer" }}>
-          Buscar
-        </button>
-      </div>
+    <div
+      style={{
+        padding: "20px",
+        textAlign: "center",
+        color: "#fff"
+      }}
+    >
+      {/* =====================================================
+          VOLTAR
+      ===================================================== */}
+
+      <button
+        onClick={() =>
+          navigate("/")
+        }
+      >
+        ⬅ Voltar
+      </button>
+
+      <h1>
+        🔎 Buscar Música
+      </h1>
+
+      {/* =====================================================
+          BUSCA
+      ===================================================== */}
+
+      <input
+        value={busca}
+        onChange={(e) =>
+          setBusca(e.target.value)
+        }
+        onKeyDown={(e) => {
+          if (e.key === "Enter") {
+            buscarMusica()
+          }
+        }}
+        placeholder="Digite a música"
+        style={{
+          padding: "10px",
+          width: "70%"
+        }}
+      />
+
+      <br />
+      <br />
+
+      <button
+        onClick={
+          buscarMusica
+        }
+      >
+        🔎 Buscar
+      </button>
+
+      {/* =====================================================
+          FORMULÁRIO DA MÚSICA SELECIONADA
+      ===================================================== */}
 
       {musicaSelecionada && (
-        <div style={{ padding: "15px", border: "1px solid #28a745", borderRadius: "5px", backgroundColor: "#e2f0d9", marginBottom: "20px" }}>
-          <h4>📌 Confirmar Cadastro</h4>
-          <p><strong>Música:</strong> {musicaSelecionada.titulo}</p>
-          <div style={{ marginBottom: "10px" }}>
-            <label style={{ display: "block", marginBottom: "5px" }}>Cantor/Cantora:</label>
+        <div
+          style={{
+            maxWidth: "600px",
+            margin: "30px auto",
+            padding: "20px",
+            backgroundColor:
+              "#1e1e1e",
+            borderRadius: "12px"
+          }}
+        >
+          <h2>
+            🎵 Música selecionada
+          </h2>
+
+          <p>
+            <strong>
+              {musicaSelecionada.titulo}
+            </strong>
+          </p>
+
+          <p
+            style={{
+              color: "#aaa",
+              fontSize: "14px"
+            }}
+          >
+            VideoId:{" "}
+            {musicaSelecionada.videoId}
+          </p>
+
+          {/* =================================================
+              CANTOR / ARTISTA
+          ================================================= */}
+
+          <div
+            style={{
+              marginTop: "20px"
+            }}
+          >
+            <label
+              style={{
+                display: "block",
+                marginBottom: "8px",
+                fontWeight: "bold"
+              }}
+            >
+              🎤 Cantor / Artista
+            </label>
+
             <input
-              type="text"
               value={cantor}
-              onChange={(e) => setCantor(e.target.value)}
-              placeholder="Quem vai cantar?"
-              style={{ width: "100%", padding: "8px", boxSizing: "border-box" }}
+              onChange={(e) =>
+                setCantor(
+                  e.target.value
+                )
+              }
+              onKeyDown={(e) => {
+                if (
+                  e.key === "Enter"
+                ) {
+                  salvarMusica()
+                }
+              }}
+              placeholder="Digite o nome do cantor ou artista"
+              autoFocus
+              style={{
+                padding: "12px",
+                width: "90%",
+                maxWidth: "450px",
+                borderRadius: "6px",
+                border: "1px solid #555",
+                fontSize: "16px"
+              }}
             />
           </div>
-          <div style={{ display: "flex", gap: "10px" }}>
-            <button onClick={() => salvarMusica(musicaSelecionada)} style={{ padding: "8px 15px", backgroundColor: "#28a745", color: "#fff", border: "none", borderRadius: "3px", cursor: "pointer" }}>
-              Salvar na Playlist
+
+          {/* =================================================
+              BOTÕES
+          ================================================= */}
+
+          <div
+            style={{
+              marginTop: "20px",
+              display: "flex",
+              justifyContent:
+                "center",
+              gap: "10px"
+            }}
+          >
+            <button
+              onClick={
+                salvarMusica
+              }
+              style={{
+                padding:
+                  "10px 20px",
+                cursor:
+                  "pointer"
+              }}
+            >
+              💾 Salvar e Abrir
             </button>
-            <button onClick={cancelarSelecao} style={{ padding: "8px 15px", backgroundColor: "#dc3545", color: "#fff", border: "none", borderRadius: "3px", cursor: "pointer" }}>
-              Cancelar
+
+            <button
+              onClick={
+                cancelarSelecao
+              }
+              style={{
+                padding:
+                  "10px 20px",
+                cursor:
+                  "pointer"
+              }}
+            >
+              ❌ Cancelar
             </button>
           </div>
         </div>
       )}
 
-      <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
-        {videos.map((video) => (
-          <div key={video.id.videoId} style={{ display: "flex", gap: "15px", padding: "10px", border: "1px solid #eee", borderRadius: "5px", alignItems: "center" }}>
-            <img src={video.snippet?.thumbnails?.default?.url} alt="thumbnail" style={{ width: "120px", borderRadius: "3px" }} />
-            <div style={{ flex: 1 }}>
-              <h4 style={{ margin: "0 0 5px 0", fontSize: "14px" }}>{video.snippet?.title}</h4>
-              <button onClick={() => selecionarMusica(video)} style={{ padding: "5px 10px", backgroundColor: "#6c757d", color: "#fff", border: "none", borderRadius: "3px", cursor: "pointer" }}>
-                Selecionar
-              </button>
-            </div>
-          </div>
-        ))}
+      {/* =====================================================
+          RESULTADOS
+      ===================================================== */}
+
+      <div
+        style={{
+          marginTop: "20px"
+        }}
+      >
+        {videos.map(
+          (video) => {
+            const videoId =
+              video.id.videoId
+
+            const titulo =
+              video.snippet?.title ||
+              "Karaokê"
+
+            return (
+              <div
+                key={videoId}
+                onClick={() =>
+                  selecionarMusica(
+                    video
+                  )
+                }
+                style={{
+                  cursor:
+                    "pointer",
+                  marginBottom:
+                    "15px",
+                  padding: "10px",
+                  borderRadius:
+                    "10px"
+                }}
+              >
+                <img
+                  src={
+                    video.snippet
+                      .thumbnails
+                      .medium.url
+                  }
+                  width="120"
+                  alt={titulo}
+                />
+
+                <p>
+                  {titulo}
+                </p>
+              </div>
+            )
+          }
+        )}
       </div>
     </div>
-  );
-}
+  )
+
+
+export default Buscar
