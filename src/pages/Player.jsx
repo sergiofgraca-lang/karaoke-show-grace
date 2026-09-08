@@ -190,6 +190,7 @@ export default function Player() {
         if (!ativo) return;
 
       
+
 // ================================================================
 // DEFINIR URL REAL DO ÁUDIO
 // ================================================================
@@ -198,63 +199,18 @@ let finalAudioURL = "";
 let nomeDoAudio = `${videoIdMusica}.mp3`;
 
 // ================================================================
-// USAR PRIMEIRO A URL ASSINADA DO SUPABASE
+// USAR O PROXY DO DJANGO
+// O Django acessa o Supabase privado e entrega o MP3
 // ================================================================
 
-if (dados.audio_url) {
-  if (
-    dados.audio_url.startsWith("http://") ||
-    dados.audio_url.startsWith("https://")
-  ) {
-    finalAudioURL = dados.audio_url;
-  } else {
-    finalAudioURL = new URL(
-      dados.audio_url,
-      `${API_ENDPOINT}/`
-    ).href;
-  }
-}
+if (dados.audio_url || dados.url || dados.audio) {
+  finalAudioURL =
+    `${API_ENDPOINT}/audio-arquivo/${videoIdMusica}/`;
 
-// ================================================================
-// COMPATIBILIDADE COM URL ANTIGA
-// ================================================================
-
-if (!finalAudioURL && dados.url) {
-  if (
-    dados.url.startsWith("http://") ||
-    dados.url.startsWith("https://")
-  ) {
-    finalAudioURL = dados.url;
-  } else {
-    finalAudioURL = new URL(
-      dados.url,
-      `${API_ENDPOINT}/`
-    ).href;
-  }
-}
-
-// ================================================================
-// COMPATIBILIDADE COM CAMPO audio
-// ================================================================
-
-if (!finalAudioURL && dados.audio) {
-  if (
-    dados.audio.startsWith("http://") ||
-    dados.audio.startsWith("https://")
-  ) {
-    finalAudioURL = dados.audio;
-  } else {
-    finalAudioURL = new URL(
-      dados.audio,
-      `${API_ENDPOINT}/`
-    ).href;
-  }
-}
-
-if (dados.audio_url) {
-  nomeDoAudio = `${videoIdMusica}.mp3`;
-} else if (dados.audio) {
-  nomeDoAudio = dados.audio;
+  console.log(
+    "🎧 Áudio será carregado pelo proxy Django:",
+    finalAudioURL
+  );
 }
 
 // ================================================================
@@ -275,33 +231,14 @@ if (!finalAudioURL) {
   return;
 }
 
-// ================================================================
-// SEGURANÇA EXTRA
-// NÃO ACEITAR VEVIOZ
-// ================================================================
-
-if (
-  finalAudioURL.toLowerCase().includes("vevioz.com")
-) {
-  console.error(
-    "❌ URL inválida detectada e bloqueada:",
-    finalAudioURL
-  );
-
-  setErroAudio(
-    "O áudio associado possui uma URL inválida."
-  );
-
-  setAudioCarregando(false);
-  return;
-}
-
 console.log(
   "🎵 URL final do áudio:",
   finalAudioURL
 );
 
 setAudioNome(nomeDoAudio);
+
+
 
 
 
@@ -401,7 +338,7 @@ setAudioNome(nomeDoAudio);
     return () => {
       ativo = false;
     };
-  }, [videoIdMusica, tomAtual]);
+  }, [videoIdMusica]);
 
   // =========================================================================
   // INICIAR ÁUDIO
@@ -890,31 +827,70 @@ setAudioNome(nomeDoAudio);
   // =========================================================================
 
   function aumentarTom() {
-    setTomAtual((atual) => {
-      const novoTom = atual + 1;
+  setTomAtual((atual) => {
+    const novoTom = atual + 1;
 
-      const valor =
-        novoTom > 12
-          ? 12
-          : novoTom;
+    const valor =
+      novoTom > 12
+        ? 12
+        : novoTom;
 
-      if (pitchRef.current) {
-        pitchRef.current.pitch =
-          valor;
-      }
+    if (pitchRef.current) {
+      pitchRef.current.pitch = valor;
+    }
 
-      console.log(
-        "🎵 Tom:",
-        TONS[
-          ((valor % 12) + 12) % 12
-        ],
-        "Pitch:",
-        valor
-      );
+    console.log(
+      "🎵 Tom:",
+      TONS[
+        ((valor % 12) + 12) % 12
+      ],
+      "Pitch:",
+      valor
+    );
 
-      return valor;
-    });
+    return valor;
+  });
+}
+
+
+function diminuirTom() {
+  setTomAtual((atual) => {
+    const novoTom = atual - 1;
+
+    const valor =
+      novoTom < -12
+        ? -12
+        : novoTom;
+
+    if (pitchRef.current) {
+      pitchRef.current.pitch = valor;
+    }
+
+    console.log(
+      "🎵 Tom:",
+      TONS[
+        ((valor % 12) + 12) % 12
+      ],
+      "Pitch:",
+      valor
+    );
+
+    return valor;
+  });
+}
+
+
+function voltarTomOriginal() {
+  if (pitchRef.current) {
+    pitchRef.current.pitch = 0;
   }
+
+  setTomAtual(0);
+
+  console.log(
+    "🎵 Tom: C Pitch: 0"
+  );
+}
 
   function diminuirTom() {
     setTomAtual((atual) => {
@@ -1352,19 +1328,11 @@ setAudioNome(nomeDoAudio);
             −
           </button>
 
-          <button
-            onClick={() =>
-              setTomAtual(0)
-            }
-            style={{
-              fontSize: "18px",
-              padding:
-                "0 20px",
-              cursor: "pointer",
-            }}
-          >
-            Original
-          </button>
+         <button
+  onClick={voltarTomOriginal}
+>
+  Original
+</button>
 
           <button
             onClick={aumentarTom}

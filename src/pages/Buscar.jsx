@@ -130,74 +130,147 @@ function Buscar() {
   // SALVAR MÚSICA NO DJANGO
   // =========================================================
 
- // =========================================================================
-// BLOCO DE SALVAMENTO CORRIGIDO (LINHAS 133 A 176)
-// =========================================================================
-// =========================================================================
-// BLOCO DE SALVAMENTO CORRIGIDO (MAPEAMENTO DAS PROPRIEDADES DO YOUTUBE)
-// =========================================================================
-  // =========================================================
-  // SALVAR MÚSICA NO DJANGO (BLINDAGEM TOTAL DE VARIÁVEIS)
-  // =========================================================
-  async function salvarMusica(parametroDoClique) {
+  async function salvarMusica() {
     try {
-      // CURINGA: Se o parâmetro do clique vier vazio, lê o estado da tela por segurança
-      const itemAtivo = parametroDoClique || musicaSelecionada;
+      // Usa diretamente a música selecionada
+      const itemAtivo =
+        musicaSelecionada
 
       if (!itemAtivo) {
-        console.warn("⚠️ Nenhum dado de música ativo no momento.");
-        return;
+        console.warn(
+          "⚠️ Nenhuma música selecionada no momento."
+        )
+
+        return
       }
 
-      // Procura o videoId e o título em todas as variações possíveis de chaves
-      const idDoVideo = itemAtivo.videoId || itemAtivo.id?.videoId || itemAtivo.id;
-      const tituloDaMusica = itemAtivo.titulo || itemAtivo.snippet?.title || "Karaoke";
+      // =====================================================
+      // PEGAR ID E TÍTULO DA MÚSICA
+      // =====================================================
 
-      console.log("💾 Iniciando salvamento no Django:", {
-        videoId: idDoVideo,
-        titulo: tituloDaMusica
-      });
+      const idDoVideo =
+        itemAtivo.videoId ||
+        itemAtivo.id?.videoId ||
+        itemAtivo.id
+
+      const tituloDaMusica =
+        itemAtivo.titulo ||
+        itemAtivo.snippet?.title ||
+        "Karaoke"
+
+      console.log(
+        "💾 Iniciando salvamento no Django:",
+        {
+          videoId: idDoVideo,
+          titulo: tituloDaMusica
+        }
+      )
+
+      // =====================================================
+      // VALIDAR VIDEO ID
+      // =====================================================
 
       if (!idDoVideo) {
-        throw new Error("ID do vídeo inválido ou não encontrado.");
+        throw new Error(
+          "ID do vídeo inválido ou não encontrado."
+        )
       }
 
-      const resposta = await fetch(`${API}/salvar/`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          videoId: idDoVideo,
-          titulo: tituloDaMusica,
-          cantor: cantor || "Sergio"
-        }),
-      });
+      // =====================================================
+      // ENVIAR PARA O DJANGO
+      // =====================================================
+
+      const resposta =
+        await fetch(
+          `${API}/salvar/`,
+          {
+            method: "POST",
+
+            headers: {
+              "Content-Type":
+                "application/json",
+            },
+
+            body: JSON.stringify({
+              videoId:
+                idDoVideo,
+
+              titulo:
+                tituloDaMusica,
+
+              cantor:
+                cantor ||
+                "Sergio"
+            }),
+          }
+        )
+
+      // =====================================================
+      // VERIFICAR RESPOSTA
+      // =====================================================
 
       if (!resposta.ok) {
-        throw new Error("Não foi possível processar o áudio do YouTube.");
+        const textoErro =
+          await resposta.text()
+
+        console.error(
+          "❌ Django respondeu com erro:",
+          resposta.status,
+          textoErro
+        )
+
+        throw new Error(
+          "Não foi possível processar o áudio do YouTube."
+        )
       }
 
-      const dados = await resposta.json();
-      console.log("📡 Resposta Django recebida com sucesso:", dados);
+      // =====================================================
+      // LER RESPOSTA
+      // =====================================================
 
-      if (dados && (dados.id || dados.videoId)) {
-        console.log("🎬 Redirecionando para o Player com o ID:", idDoVideo);
-        navigate(`/player/${idDoVideo}`, { 
-          state: { musica: dados } 
-        });
+      const dados =
+        await resposta.json()
+
+      console.log(
+        "📡 Resposta Django recebida com sucesso:",
+        dados
+      )
+
+      // =====================================================
+      // ABRIR PLAYER
+      // =====================================================
+
+      if (
+        dados &&
+        (dados.id ||
+          dados.videoId)
+      ) {
+        console.log(
+          "🎬 Redirecionando para o Player com o ID:",
+          idDoVideo
+        )
+
+        navigate(
+          `/player/${idDoVideo}`,
+          {
+            state: {
+              musica: dados
+            }
+          }
+        )
       } else {
-        throw new Error("Dados de retorno inválidos do servidor.");
+        throw new Error(
+          "Dados de retorno inválidos do servidor."
+        )
       }
 
     } catch (erro) {
-      console.error("❌ Erro ao salvar música:", erro);
+      console.error(
+        "❌ Erro ao salvar música:",
+        erro
+      )
     }
   }
-
-// =========================================================================
-
-// =========================================================================
 
   // =========================================================
   // CANCELAR SELEÇÃO
@@ -363,8 +436,8 @@ function Buscar() {
             }}
           >
             <button
-              onClick={
-                salvarMusica
+              onClick={() =>
+                salvarMusica()
               }
               style={{
                 padding:
@@ -452,3 +525,4 @@ function Buscar() {
 }
 
 export default Buscar
+
