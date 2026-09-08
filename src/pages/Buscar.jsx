@@ -85,7 +85,7 @@ function Buscar() {
   }
 
 
-        const musica = {
+       const musica = {
       titulo: video.snippet?.title || "Karaokê",
       videoId,
       cantor: ""
