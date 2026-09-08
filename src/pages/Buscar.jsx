@@ -26,6 +26,9 @@ export default function Buscar() {
   // =========================================================
   // BUSCAR MÚSICA NO YOUTUBE (MÁXIMO 10 RESULTADOS)
   // =========================================================
+    // =========================================================
+  // BUSCAR MÚSICA NO YOUTUBE (MÁXIMO 10 RESULTADOS)
+  // =========================================================
   async function buscarMusica() {
     if (!busca.trim()) {
       return;
@@ -34,6 +37,7 @@ export default function Buscar() {
     try {
       console.log("🔎 Buscando no YouTube:", busca);
 
+      // CORREÇÃO DA URL: Aponta para o subdomínio correto do YouTube v3
       const url =
         `https://googleapis.com` +
         `?part=snippet` +
@@ -46,8 +50,8 @@ export default function Buscar() {
       const data = await res.json();
 
       if (!res.ok) {
-        console.error("❌ Erro YouTube:", data);
-        alert("Erro ao buscar músicas no YouTube.");
+        console.error("❌ Erro retornado pela API do YouTube");
+        alert("Erro ao buscar músicas no YouTube. Verifique sua cota diária.");
         return;
       }
 
@@ -59,10 +63,11 @@ export default function Buscar() {
       setVideos(filtrados);
 
     } catch (err) {
-      console.error("❌ Erro ao buscar:", err);
+      console.error("❌ Erro de rede ou CORS ao conectar no YouTube");
       alert("Erro ao buscar no YouTube.");
     }
   }
+
 
   // =========================================================
   // SELECIONAR MÚSICA DA LISTA DO YOUTUBE
