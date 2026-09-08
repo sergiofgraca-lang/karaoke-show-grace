@@ -130,124 +130,56 @@ function Buscar() {
   // SALVAR MÚSICA NO DJANGO
   // =========================================================
 
-  async function salvarMusica() {
-    if (!musicaSelecionada) {
-      return
+ // =========================================================================
+// BLOCO DE SALVAMENTO CORRIGIDO (LINHAS 133 A 176)
+// =========================================================================
+async function salvarMusica(musicaSelecionada) {
+  try {
+    const API_URL = import.meta.env.VITE_API_URL || "https://vercel.app";
+
+    console.log("💾 Salvando música no Django:", {
+      videoId: musicaSelecionada.videoId,
+      titulo: musicaSelecionada.titulo
+    });
+
+    // 1. Faz o disparo utilizando estritamente a variável 'resposta'
+    const resposta = await fetch(`${API_URL}/salvar/`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        videoId: musicaSelecionada.videoId,
+        titulo: musicaSelecionada.titulo,
+        cantor: cantor || "Sergio"
+      }),
+    });
+
+    // 2. Valida o status de rede utilizando a variável 'resposta'
+    if (!resposta.ok) {
+      throw new Error("Não foi possível processar o áudio do YouTube.");
     }
 
-    if (!cantor.trim()) {
-      alert(
-        "🎤 Informe o nome do cantor ou artista."
-      )
+    // 3. Converte os dados do json utilizando a variável 'resposta'
+    const dados = await resposta.json();
+    console.log("📡 Resposta Django recebida com sucesso:", dados);
 
-      return
-    }
-
-    const musica = {
-      ...musicaSelecionada,
-      cantor: cantor.trim()
-    }
-
-    try {
-      console.log(
-        "💾 Salvando música no Django:",
-        musica
-      )
-// Procure por algo parecido com isso na linha ~158 do Buscar.jsx:
-// const resposta = await fetch("http://127.0.0", { ... })
-
-// SUBSTITUA POR ESTE FORMATO DINÂMICO QUE LÊ A VERCEL:
-// Localize a função de salvamento perto da linha ~152 no Buscar.jsx e mude o body para:
-      const API_URL = import.meta.env.VITE_API_URL || "https://vercel.app";
-
-      console.log("💾 Salvando música no Django:", { videoId: musicaSelecionada.videoId, titulo: musicaSelecionada.titulo });
-
-      // 1. Declaramos a variável como 'resposta'
-      const resposta = await fetch(`${API_URL}/salvar/`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          videoId: musicaSelecionada.videoId,
-          titulo: musicaSelecionada.titulo,
-          cantor: cantor || "Sergio"
-        }),
+    // 4. Se o servidor salvou ou localizou a música, faz o redirecionamento automático
+    if (dados && (dados.id || dados.videoId)) {
+      console.log("🎬 Redirecionando para o Player com o ID:", dados.id);
+      navigate(`/player/${musicaSelecionada.videoId}`, { 
+        state: { musica: dados } 
       });
-
-      // 2. CORREÇÃO DA VARIÁVEL: Mudamos de 'res.json()' para 'resposta.json()'
-      if (!resposta.ok) {
-        throw new Error("Não foi possível processar o áudio do YouTube.");
-      }
-
-      const dados = await resposta.json();
-      console.log("📡 Resposta Django recebida:", dados);
-
-
-      console.log(
-        "📡 Status Django:",
-        res.status
-      )
-
-      const data =
-        await res.json()
-
-      console.log(
-        "📦 Resposta Django:",
-        data
-      )
-
-      if (!res.ok) {
-        throw new Error(
-          data.erro ||
-          "Erro ao salvar música"
-        )
-      }
-
-      console.log(
-        "✅ Música salva no banco!"
-      )
-
-      console.log(
-        "🆔 ID:",
-        data.id
-      )
-
-      if (data.audio) {
-        console.log(
-          "🎧 Áudio encontrado:",
-          data.audio
-        )
-      }
-
-      // =====================================================
-      // ABRIR PLAYER
-      // =====================================================
-
-      console.log(
-        "🎬 Abrindo Player..."
-      )
-
-      navigate(
-        `/player/${musica.videoId}`,
-        {
-          state: {
-            musica
-          }
-        }
-      )
-    } catch (err) {
-      console.error(
-        "❌ Erro ao salvar música:",
-        err
-      )
-
-      alert(
-        err.message ||
-        "Não foi possível salvar a música no Django."
-      )
+    } else {
+      throw new Error("Dados de retorno inválidos do servidor.");
     }
+
+  } catch (erro) {
+    console.error("❌ Erro ao salvar música:", erro);
+    // Remove o alert chato do navegador e usa o fluxo comum de log
   }
+}
+// =========================================================================
 
   // =========================================================
   // CANCELAR SELEÇÃO
