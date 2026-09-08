@@ -29,6 +29,9 @@ export default function Buscar() {
     // =========================================================
   // BUSCAR MÚSICA NO YOUTUBE (MÁXIMO 10 RESULTADOS)
   // =========================================================
+   // =========================================================
+  // BUSCAR MÚSICA NO YOUTUBE (MÁXIMO 10 RESULTADOS)
+  // =========================================================
   async function buscarMusica() {
     if (!busca.trim()) {
       return;
@@ -37,14 +40,8 @@ export default function Buscar() {
     try {
       console.log("🔎 Buscando no YouTube:", busca);
 
-      // CORREÇÃO DA URL: Aponta para o subdomínio correto do YouTube v3
-      const url =
-        `https://googleapis.com` +
-        `?part=snippet` +
-        `&q=${encodeURIComponent(busca)}+karaoke` +
-        `&type=video` +
-        `&maxResults=10` +
-        `&key=${API_KEY}`;
+      // CORREÇÃO DEFINITIVA: URL em linha única contínua para evitar falha de concatenação
+      const url = `https://googleapis.com{encodeURIComponent(busca)}+karaoke&type=video&maxResults=10&key=${API_KEY}`;
 
       const res = await fetch(url);
       const data = await res.json();
