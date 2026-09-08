@@ -1,46 +1,38 @@
-import { useState } from "react"
-import { useNavigate } from "react-router-dom"
+import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 
 function Buscar() {
-  const [busca, setBusca] = useState("")
-  const [videos, setVideos] = useState([])
+  const [busca, setBusca] = useState("");
+  const [videos, setVideos] = useState([]);
 
   // Música selecionada para cadastro
-  const [musicaSelecionada, setMusicaSelecionada] =
-    useState(null)
+  const [musicaSelecionada, setMusicaSelecionada] = useState(null);
 
   // Nome do cantor/artista
-  const [cantor, setCantor] = useState("")
+  const [cantor, setCantor] = useState("");
 
-  const navigate = useNavigate()
+  const navigate = useNavigate();
 
   // =========================================================
-  // API
+  // CONFIGURAÇÃO DOS ENDPOINTS DA API
   // =========================================================
-
-  const API_KEY =
-    import.meta.env.VITE_YOUTUBE_KEY
+  const API_KEY = import.meta.env.VITE_YOUTUBE_KEY;
 
   const API =
-    import.meta.env.VITE_API_URL &&
-    import.meta.env.VITE_API_URL !== "undefined"
+    import.meta.env.VITE_API_URL && import.meta.env.VITE_API_URL !== "undefined"
       ? import.meta.env.VITE_API_URL
-      : "https://karaoke-show-grace-backend.vercel.app/api"
+      : "https://karaoke-show-grace-backend.vercel.app/api";
 
   // =========================================================
-  // BUSCAR MÚSICA NO YOUTUBE
+  // BUSCAR MÚSICA NO YOUTUBE (MÁXIMO 10 RESULTADOS)
   // =========================================================
-
   async function buscarMusica() {
     if (!busca.trim()) {
-      return
+      return;
     }
 
     try {
-      console.log(
-        "🔎 Buscando no YouTube:",
-        busca
-      )
+      console.log("🔎 Buscando no YouTube:", busca);
 
       const url =
         `https://www.googleapis.com/youtube/v3/search` +
@@ -48,154 +40,118 @@ function Buscar() {
         `&q=${encodeURIComponent(busca)}+karaoke` +
         `&type=video` +
         `&maxResults=10` +
-        `&key=${API_KEY}`
+        `&key=${API_KEY}`;
 
-      const res = await fetch(url)
-
-      const data = await res.json()
+      const res = await fetch(url);
+      const data = await res.json();
 
       if (!res.ok) {
-        console.error(
-          "❌ Erro YouTube:",
-          data
-        )
-
-        alert(
-          "Erro ao buscar músicas no YouTube."
-        )
-
-        return
+        console.error("❌ Erro YouTube:", data);
+        alert("Erro ao buscar músicas no YouTube.");
+        return;
       }
 
-      const filtrados =
-        (data.items || []).filter(
-          (v) =>
-            v.id &&
-            v.id.videoId
-        )
+      const filtrados = (data.items || []).filter(
+        (v) => v.id && v.id.videoId
+      );
 
-      console.log(
-        "🎵 Resultados encontrados:",
-        filtrados.length
-      )
+      console.log("🎵 Resultados encontrados:", filtrados.length);
+      setVideos(filtrados);
 
-      setVideos(filtrados)
     } catch (err) {
-      console.error(
-        "❌ Erro ao buscar:",
-        err
-      )
-
-      alert(
-        "Erro ao buscar no YouTube."
-      )
+      console.error("❌ Erro ao buscar:", err);
+      alert("Erro ao buscar no YouTube.");
     }
   }
 
   // =========================================================
-  // SELECIONAR MÚSICA
+  // SELECIONAR MÚSICA DA LISTA DO YOUTUBE
   // =========================================================
-
   function selecionarMusica(video) {
-    const videoId =
-      video?.id?.videoId
+    const videoId = video?.id?.videoId;
 
     if (!videoId) {
-      return
+      console.warn("⚠️ Vídeo selecionado não possui um videoId válido.");
+      return;
     }
 
-    const musica = {
-      titulo:
-        video.snippet?.title ||
-        "Karaokê",
+    const infoMusica = {
+      titulo: video.snippet?.title || "Karaokê Sem Título",
+      videoId: videoId
+    };
 
+    console.log("🎵 Música selecionada para o formulário:", infoMusica);
+    setMusicaSelecionada(infoMusica);
+  }
+
+
+        const musica = {
+      titulo: video.snippet?.title || "Karaokê",
       videoId,
-
       cantor: ""
-    }
+    };
 
-    console.log(
-      "🎵 Música selecionada:",
-      musica
-    )
-
-    setMusicaSelecionada(
-      musica
-    )
-
-    setCantor("")
+    console.log("🎵 Música selecionada:", musica);
+    setMusicaSelecionada(musica);
+    setCantor("");
   }
 
   // =========================================================
-  // SALVAR MÚSICA NO DJANGO
+  // SALVAR MÚSICA NO DJANGO (ENVIO PRO SUPABASE STORAGE)
   // =========================================================
+  async function salvarMusica(musicaItem) {
+    try {
+      // Usa a constante global 'API' já declarada no topo do seu arquivo
+      const idDoVideo = musicaItem?.videoId || musicaSelecionada?.videoId;
+      const tituloDaMusica = musicaItem?.titulo || musicaSelecionada?.titulo || "Karaoke";
 
- // =========================================================================
-// BLOCO DE SALVAMENTO CORRIGIDO (LINHAS 133 A 176)
-// =========================================================================
-// =========================================================================
-// BLOCO DE SALVAMENTO CORRIGIDO (MAPEAMENTO DAS PROPRIEDADES DO YOUTUBE)
-// =========================================================================
-async function salvarMusica(musica) { // <--- Mudamos o parâmetro para 'musica' pura
-  try {
-    const API_URL = import.meta.env.VITE_API_URL || "https://vercel.app";
-
-    // Captura as chaves reais que o seu objeto do YouTube usa na listagem
-    const idDoVideo = musica.videoId || musica.id?.videoId || musica.id;
-    const tituloDaMusica = musica.titulo || musica.snippet?.title;
-
-    console.log("💾 Salvando música no Django:", {
-      videoId: idDoVideo,
-      titulo: tituloDaMusica
-    });
-
-    if (!idDoVideo) {
-      throw new Error("ID do vídeo inválido ou não encontrado.");
-    }
-
-    // Faz o disparo utilizando estritamente a variável 'resposta'
-    const resposta = await fetch(`${API_URL}/salvar/`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
+      console.log("💾 Salvando música no Django:", {
         videoId: idDoVideo,
-        titulo: tituloDaMusica || "Karaoke",
-        cantor: cantor || "Sergio"
-      }),
-    });
-
-    // Valida o status de rede utilizando a variável 'resposta'
-    if (!resposta.ok) {
-      throw new Error("Não foi possível processar o áudio do YouTube.");
-    }
-
-    // Converte os dados do json utilizando a variável 'resposta'
-    const dados = await resposta.json();
-    console.log("📡 Resposta Django recebida com sucesso:", dados);
-
-    // Se o servidor salvou ou localizou a música, faz o redirecionamento automático
-    if (dados && (dados.id || dados.videoId)) {
-      console.log("🎬 Redirecionando para o Player com o ID:", idDoVideo);
-      navigate(`/player/${idDoVideo}`, { 
-        state: { musica: dados } 
+        titulo: tituloDaMusica
       });
-    } else {
-      throw new Error("Dados de retorno inválidos do servidor.");
+
+      if (!idDoVideo) {
+        console.warn("⚠️ Operação cancelada: videoId não encontrado.");
+        return;
+      }
+
+      const resposta = await fetch(`${API}/salvar/`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          videoId: idDoVideo,
+          titulo: tituloDaMusica,
+          cantor: cantor || "Sergio"
+        }),
+      });
+
+      if (!resposta.ok) {
+        throw new Error("Não foi possível processar o áudio do YouTube.");
+      }
+
+      const dados = await resposta.json();
+      console.log("📡 Resposta Django recebida com sucesso:", dados);
+
+      if (dados && (dados.id || dados.videoId)) {
+        console.log("🎬 Redirecionando para o Player com o ID:", idDoVideo);
+        navigate(`/player/${idDoVideo}`, { 
+          state: { musica: dados } 
+        });
+      } else {
+        throw new Error("Dados de retorno inválidos do servidor.");
+      }
+
+    } catch (erro) {
+      console.error("❌ Erro ao salvar música:", erro);
     }
-
-  } catch (erro) {
-    console.error("❌ Erro ao salvar música:", erro);
   }
-}
-// =========================================================================
-
-// =========================================================================
 
   // =========================================================
   // CANCELAR SELEÇÃO
   // =========================================================
+
 
   function cancelarSelecao() {
     setMusicaSelecionada(null)
@@ -443,6 +399,6 @@ async function salvarMusica(musica) { // <--- Mudamos o parâmetro para 'musica'
       </div>
     </div>
   )
-}
+
 
 export default Buscar
