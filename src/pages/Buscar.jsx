@@ -136,59 +136,65 @@ function Buscar() {
 // =========================================================================
 // BLOCO DE SALVAMENTO CORRIGIDO (MAPEAMENTO DAS PROPRIEDADES DO YOUTUBE)
 // =========================================================================
-async function salvarMusica(musica) { // <--- Mudamos o parâmetro para 'musica' pura
-  try {
-    const API_URL = import.meta.env.VITE_API_URL || "https://vercel.app";
+  // =========================================================
+  // SALVAR MÚSICA NO DJANGO (BLINDAGEM TOTAL DE VARIÁVEIS)
+  // =========================================================
+  async function salvarMusica(parametroDoClique) {
+    try {
+      // CURINGA: Se o parâmetro do clique vier vazio, lê o estado da tela por segurança
+      const itemAtivo = parametroDoClique || musicaSelecionada;
 
-    // Captura as chaves reais que o seu objeto do YouTube usa na listagem
-    const idDoVideo = musica.videoId || musica.id?.videoId || musica.id;
-    const tituloDaMusica = musica.titulo || musica.snippet?.title;
+      if (!itemAtivo) {
+        console.warn("⚠️ Nenhum dado de música ativo no momento.");
+        return;
+      }
 
-    console.log("💾 Salvando música no Django:", {
-      videoId: idDoVideo,
-      titulo: tituloDaMusica
-    });
+      // Procura o videoId e o título em todas as variações possíveis de chaves
+      const idDoVideo = itemAtivo.videoId || itemAtivo.id?.videoId || itemAtivo.id;
+      const tituloDaMusica = itemAtivo.titulo || itemAtivo.snippet?.title || "Karaoke";
 
-    if (!idDoVideo) {
-      throw new Error("ID do vídeo inválido ou não encontrado.");
-    }
-
-    // Faz o disparo utilizando estritamente a variável 'resposta'
-    const resposta = await fetch(`${API_URL}/salvar/`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
+      console.log("💾 Iniciando salvamento no Django:", {
         videoId: idDoVideo,
-        titulo: tituloDaMusica || "Karaoke",
-        cantor: cantor || "Sergio"
-      }),
-    });
-
-    // Valida o status de rede utilizando a variável 'resposta'
-    if (!resposta.ok) {
-      throw new Error("Não foi possível processar o áudio do YouTube.");
-    }
-
-    // Converte os dados do json utilizando a variável 'resposta'
-    const dados = await resposta.json();
-    console.log("📡 Resposta Django recebida com sucesso:", dados);
-
-    // Se o servidor salvou ou localizou a música, faz o redirecionamento automático
-    if (dados && (dados.id || dados.videoId)) {
-      console.log("🎬 Redirecionando para o Player com o ID:", idDoVideo);
-      navigate(`/player/${idDoVideo}`, { 
-        state: { musica: dados } 
+        titulo: tituloDaMusica
       });
-    } else {
-      throw new Error("Dados de retorno inválidos do servidor.");
-    }
 
-  } catch (erro) {
-    console.error("❌ Erro ao salvar música:", erro);
+      if (!idDoVideo) {
+        throw new Error("ID do vídeo inválido ou não encontrado.");
+      }
+
+      const resposta = await fetch(`${API}/salvar/`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          videoId: idDoVideo,
+          titulo: tituloDaMusica,
+          cantor: cantor || "Sergio"
+        }),
+      });
+
+      if (!resposta.ok) {
+        throw new Error("Não foi possível processar o áudio do YouTube.");
+      }
+
+      const dados = await resposta.json();
+      console.log("📡 Resposta Django recebida com sucesso:", dados);
+
+      if (dados && (dados.id || dados.videoId)) {
+        console.log("🎬 Redirecionando para o Player com o ID:", idDoVideo);
+        navigate(`/player/${idDoVideo}`, { 
+          state: { musica: dados } 
+        });
+      } else {
+        throw new Error("Dados de retorno inválidos do servidor.");
+      }
+
+    } catch (erro) {
+      console.error("❌ Erro ao salvar música:", erro);
+    }
   }
-}
+
 // =========================================================================
 
 // =========================================================================
