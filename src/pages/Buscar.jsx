@@ -1,38 +1,46 @@
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useState } from "react"
+import { useNavigate } from "react-router-dom"
 
 function Buscar() {
-  const [busca, setBusca] = useState("");
-  const [videos, setVideos] = useState([]);
+  const [busca, setBusca] = useState("")
+  const [videos, setVideos] = useState([])
 
   // Música selecionada para cadastro
-  const [musicaSelecionada, setMusicaSelecionada] = useState(null);
+  const [musicaSelecionada, setMusicaSelecionada] =
+    useState(null)
 
   // Nome do cantor/artista
-  const [cantor, setCantor] = useState("");
+  const [cantor, setCantor] = useState("")
 
-  const navigate = useNavigate();
+  const navigate = useNavigate()
 
   // =========================================================
-  // CONFIGURAÇÃO DOS ENDPOINTS DA API
+  // API
   // =========================================================
-  const API_KEY = import.meta.env.VITE_YOUTUBE_KEY;
+
+  const API_KEY =
+    import.meta.env.VITE_YOUTUBE_KEY
 
   const API =
-    import.meta.env.VITE_API_URL && import.meta.env.VITE_API_URL !== "undefined"
+    import.meta.env.VITE_API_URL &&
+    import.meta.env.VITE_API_URL !== "undefined"
       ? import.meta.env.VITE_API_URL
-      : "https://karaoke-show-grace-backend.vercel.app/api";
+      : "https://karaoke-show-grace-backend.vercel.app/api"
 
   // =========================================================
-  // BUSCAR MÚSICA NO YOUTUBE (MÁXIMO 10 RESULTADOS)
+  // BUSCAR MÚSICA NO YOUTUBE
   // =========================================================
+
   async function buscarMusica() {
     if (!busca.trim()) {
-      return;
+      return
     }
 
     try {
-      console.log("🔎 Buscando no YouTube:", busca);
+      console.log(
+        "🔎 Buscando no YouTube:",
+        busca
+      )
 
       const url =
         `https://www.googleapis.com/youtube/v3/search` +
@@ -40,50 +48,61 @@ function Buscar() {
         `&q=${encodeURIComponent(busca)}+karaoke` +
         `&type=video` +
         `&maxResults=10` +
-        `&key=${API_KEY}`;
+        `&key=${API_KEY}`
 
-      const res = await fetch(url);
-      const data = await res.json();
+      const res = await fetch(url)
+
+      const data = await res.json()
 
       if (!res.ok) {
-        console.error("❌ Erro YouTube:", data);
-        alert("Erro ao buscar músicas no YouTube.");
-        return;
+        console.error(
+          "❌ Erro YouTube:",
+          data
+        )
+
+        alert(
+          "Erro ao buscar músicas no YouTube."
+        )
+
+        return
       }
 
-      const filtrados = (data.items || []).filter(
-        (v) => v.id && v.id.videoId
-      );
+      const filtrados =
+        (data.items || []).filter(
+          (v) =>
+            v.id &&
+            v.id.videoId
+        )
 
-      console.log("🎵 Resultados encontrados:", filtrados.length);
-      setVideos(filtrados);
+      console.log(
+        "🎵 Resultados encontrados:",
+        filtrados.length
+      )
 
+      setVideos(filtrados)
     } catch (err) {
-      console.error("❌ Erro ao buscar:", err);
-      alert("Erro ao buscar no YouTube.");
+      console.error(
+        "❌ Erro ao buscar:",
+        err
+      )
+
+      alert(
+        "Erro ao buscar no YouTube."
+      )
     }
   }
 
   // =========================================================
-  // SELECIONAR MÚSICA DA LISTA DO YOUTUBE
+  // SELECIONAR MÚSICA
   // =========================================================
+
   function selecionarMusica(video) {
-    const videoId = video?.id?.videoId;
+    const videoId =
+      video?.id?.videoId
 
     if (!videoId) {
-      console.warn("⚠️ Vídeo selecionado não possui um videoId válido.");
-      return;
+      return
     }
-
-    const infoMusica = {
-      titulo: video.snippet?.title || "Karaokê Sem Título",
-      videoId: videoId
-    };
-
-    console.log("🎵 Música selecionada para o formulário:", infoMusica);
-    setMusicaSelecionada(infoMusica);
-  }
-
 
     const musica = {
       titulo:
@@ -424,6 +443,6 @@ async function salvarMusica(musica) { // <--- Mudamos o parâmetro para 'musica'
       </div>
     </div>
   )
-
+}
 
 export default Buscar
