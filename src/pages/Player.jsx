@@ -77,6 +77,7 @@ export default function Player() {
   // =========================================================================
 
   const [audioPronto, setAudioPronto] = useState(false);
+  const audioProntoRef = useRef(false);
   const [audioCarregando, setAudioCarregando] = useState(true);
   const [erroAudio, setErroAudio] = useState("");
   const [audioNome, setAudioNome] = useState("");
@@ -121,6 +122,7 @@ export default function Player() {
     audioOffsetRef.current = 0;
     audioDurationRef.current = 0;
 
+    audioProntoRef.current = false;
     setAudioPronto(false);
   }
 
@@ -139,6 +141,7 @@ export default function Player() {
           videoIdMusica
         );
 
+        audioProntoRef.current = false;
         setAudioPronto(false);
         setAudioCarregando(true);
         setErroAudio("");
@@ -296,6 +299,7 @@ setAudioNome(nomeDoAudio);
               );
             }
 
+            audioProntoRef.current = true;
             setAudioPronto(true);
             setAudioCarregando(false);
           },
@@ -353,7 +357,7 @@ setAudioNome(nomeDoAudio);
         return;
       }
 
-      if (!audioPronto) {
+      if (!audioProntoRef.current) {
         console.log(
           "⚠️ Áudio ainda está carregando."
         );
@@ -892,32 +896,7 @@ function voltarTomOriginal() {
   );
 }
 
-  function diminuirTom() {
-    setTomAtual((atual) => {
-      const novoTom = atual - 1;
-
-      const valor =
-        novoTom < -12
-          ? -12
-          : novoTom;
-
-      if (pitchRef.current) {
-        pitchRef.current.pitch =
-          valor;
-      }
-
-      console.log(
-        "🎵 Tom:",
-        TONS[
-          ((valor % 12) + 12) % 12
-        ],
-        "Pitch:",
-        valor
-      );
-
-      return valor;
-    });
-  }
+  
 
   // =========================================================================
   // TOM VISUAL
