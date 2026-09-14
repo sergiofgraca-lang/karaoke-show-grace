@@ -337,12 +337,15 @@ setAudioNome(nomeDoAudio);
       }
     }
 
+   
     prepararAudio();
 
     return () => {
       ativo = false;
+      limparAudio();
     };
   }, [videoIdMusica]);
+
 
   // =========================================================================
   // INICIAR ÁUDIO
