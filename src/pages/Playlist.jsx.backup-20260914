@@ -13,7 +13,7 @@ function Playlist() {
     import.meta.env.VITE_API_URL &&
     import.meta.env.VITE_API_URL !== "undefined"
       ? import.meta.env.VITE_API_URL
-      : "https://karaoke-show-grace-backend.vercel.app/api"
+      : "http://127.0.0.1:8000"
   // ==============================
   // CARREGAR MÚSICAS
   // ==============================
