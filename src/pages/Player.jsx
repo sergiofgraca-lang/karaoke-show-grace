@@ -699,21 +699,48 @@ setAudioNome(nomeDoAudio);
                   }
 
                   // ENDED
-                  else if (
-                    estado ===
-                    window.YT.PlayerState.ENDED
-                  ) {
-                    console.log(
-                      "🏁 YouTube ENDED"
-                    );
+else if (
+  estado ===
+  window.YT.PlayerState.ENDED
+) {
+  console.log(
+    "🏁 YouTube ENDED"
+  );
 
-                    youtubeTocandoRef.current =
-                      false;
+  youtubeTocandoRef.current =
+    false;
 
-                    pararAudio();
+  pararAudio();
 
-                    mostrarResultado();
-                  }
+  // ==============================================================
+  // DESTRUIR O YOUTUBE ANTES DE MOSTRAR A TELA DE RESULTADO
+  // Evita conflito entre o YouTube IFrame e o React ao desmontar
+  // o elemento do player.
+  // ==============================================================
+
+  if (
+    youtubeRef.current &&
+    typeof youtubeRef.current.destroy ===
+      "function"
+  ) {
+    try {
+      console.log(
+        "🧹 Destruindo YouTube antes do resultado..."
+      );
+
+      youtubeRef.current.destroy();
+    } catch (erro) {
+      console.warn(
+        "⚠️ Erro ao destruir YouTube:",
+        erro
+      );
+    }
+
+    youtubeRef.current = null;
+  }
+
+  mostrarResultado();
+}
                 },
               },
             }
@@ -954,11 +981,15 @@ function voltarTomOriginal() {
         )
       ];
 
-    setResultado({
+        console.log("🎉 MOSTRANDO RESULTADO:", {
       nota,
       mensagem,
     });
 
+    setResultado({
+      nota,
+      mensagem,
+    });
     try {
       const aplausos =
         new Audio(
