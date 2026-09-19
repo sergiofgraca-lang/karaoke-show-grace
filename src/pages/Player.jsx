@@ -337,7 +337,6 @@ setAudioNome(nomeDoAudio);
       }
     }
 
-    import * as Tone from "tone"; // Garanta que o Tone está importado no topo
 
 // Dentro do seu componente Player, adicione este bloco logo no início:
 useEffect(() => {
