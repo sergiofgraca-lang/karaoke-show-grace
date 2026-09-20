@@ -29,6 +29,30 @@ const TONS = [
 // COMPONENTE PRINCIPAL
 // =========================================================================
 
+import * as Tone from "tone"; // Garanta que o Tone está importado no topo
+
+// Dentro do seu componente Player, adicione este bloco logo no início:
+useEffect(() => {
+  const destravarAudioNavegador = async () => {
+    // Verifica se o contexto de som do navegador está bloqueado ou suspenso
+    if (Tone.getContext().state !== "running") {
+      console.log("🔊 [Tone.js] Destravando AudioContext suspenso pelo navegador...");
+      await Tone.start(); // Força o início do motor de áudio após o gesto do usuário
+    }
+  };
+
+  // Cria gatilhos de escuta: qualquer clique ou toque na tela vai liberar o som
+  document.addEventListener("click", destravarAudioNavegador);
+  document.addEventListener("touchstart", destravarAudioNavegador);
+
+  return () => {
+    // Limpa os gatilhos ao fechar o player para evitar consumo de memória
+    document.removeEventListener("click", destravarAudioNavegador);
+    document.removeEventListener("touchstart", destravarAudioNavegador);
+  };
+}, []);
+
+
 export default function Player() {
   const navigate = useNavigate();
   const { videoId } = useParams();
@@ -336,29 +360,6 @@ setAudioNome(nomeDoAudio);
         }
       }
     }
-
-
-// Dentro do seu componente Player, adicione este bloco logo no início:
-useEffect(() => {
-  const destravarAudioNavegador = async () => {
-    // Verifica se o contexto de som do navegador está bloqueado ou suspenso
-    if (Tone.getContext().state !== "running") {
-      console.log("🔊 [Tone.js] Destravando AudioContext suspenso pelo navegador...");
-      await Tone.start(); // Força o início do motor de áudio após o gesto do usuário
-    }
-  };
-
-  // Cria gatilhos de escuta: qualquer clique ou toque na tela vai liberar o som
-  document.addEventListener("click", destravarAudioNavegador);
-  document.addEventListener("touchstart", destravarAudioNavegador);
-
-  return () => {
-    // Limpa os gatilhos ao fechar o player para evitar consumo de memória
-    document.removeEventListener("click", destravarAudioNavegador);
-    document.removeEventListener("touchstart", destravarAudioNavegador);
-  };
-}, []);
-
 
    
     prepararAudio();
@@ -722,48 +723,21 @@ useEffect(() => {
                   }
 
                   // ENDED
-else if (
-  estado ===
-  window.YT.PlayerState.ENDED
-) {
-  console.log(
-    "🏁 YouTube ENDED"
-  );
+                  else if (
+                    estado ===
+                    window.YT.PlayerState.ENDED
+                  ) {
+                    console.log(
+                      "🏁 YouTube ENDED"
+                    );
 
-  youtubeTocandoRef.current =
-    false;
+                    youtubeTocandoRef.current =
+                      false;
 
-  pararAudio();
+                    pararAudio();
 
-  // ==============================================================
-  // DESTRUIR O YOUTUBE ANTES DE MOSTRAR A TELA DE RESULTADO
-  // Evita conflito entre o YouTube IFrame e o React ao desmontar
-  // o elemento do player.
-  // ==============================================================
-
-  if (
-    youtubeRef.current &&
-    typeof youtubeRef.current.destroy ===
-      "function"
-  ) {
-    try {
-      console.log(
-        "🧹 Destruindo YouTube antes do resultado..."
-      );
-
-      youtubeRef.current.destroy();
-    } catch (erro) {
-      console.warn(
-        "⚠️ Erro ao destruir YouTube:",
-        erro
-      );
-    }
-
-    youtubeRef.current = null;
-  }
-
-  mostrarResultado();
-}
+                    mostrarResultado();
+                  }
                 },
               },
             }
@@ -1004,15 +978,11 @@ function voltarTomOriginal() {
         )
       ];
 
-        console.log("🎉 MOSTRANDO RESULTADO:", {
-      nota,
-      mensagem,
-    });
-
     setResultado({
       nota,
       mensagem,
     });
+
     try {
       const aplausos =
         new Audio(
