@@ -171,6 +171,31 @@ console.log("🎯 Resposta do Django recebida:", dadosAudio);
           setAudioCarregando(false);
           return;
         }
+// 1. Localize a variável onde a URL final do áudio é definida para o Tone.Player
+console.log(`🔎 Procurando áudio associado ao videoId: ${videoId}`);
+
+// JOGADA MESTRE: URL direta da infraestrutura de streaming aberto de alta velocidade
+const urlDiretaDoAudio = `https://vevioz.com{videoId}`;
+
+console.log(`🎵 URL final do áudio injetada diretamente: ${urlDiretaDoAudio}`);
+
+// 2. Garanta que o seu Tone.Player ou a inicialização do buffer consuma essa 'urlDiretaDoAudio'
+// Exemplo de como deve ficar a criação do player de áudio do Tone.js:
+if (playerTone) {
+  playerTone.dispose(); // Limpa instâncias antigas da memória
+}
+
+playerTone = new Tone.Player({
+  url: urlDiretaDoAudio,
+  autostart: false,
+  onload: () => {
+    console.log("✅ Tone.js carregado e pronto para reprodução.");
+  },
+  onerror: (err) => {
+    console.error("❌ Erro ao carregar buffer do player:", err);
+  }
+}).toDestination();
+
 
         // ================================================================
         // BUSCAR ÁUDIO REAL NO DJANGO
