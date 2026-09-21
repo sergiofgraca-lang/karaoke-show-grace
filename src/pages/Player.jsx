@@ -78,7 +78,10 @@ export default function Player() {
 
   const [audioPronto, setAudioPronto] = useState(false);
   const audioProntoRef = useRef(false);
-  const [audioCarregando, setAudioCarregando] = useState(true);
+
+  const [audioCarregando, setAudioCarregando] =
+    useState(true);
+
   const [erroAudio, setErroAudio] = useState("");
   const [audioNome, setAudioNome] = useState("");
 
@@ -135,10 +138,6 @@ export default function Player() {
 
     async function prepararAudio() {
       try {
-        // ================================================================
-        // BUSCAR ÁUDIO REAL NO DJANGO
-        // ================================================================
-
         let dados = {};
 
         try {
@@ -173,19 +172,14 @@ export default function Player() {
 
         if (!ativo) return;
 
-        // ================================================================
-        // DEFINIR URL REAL DO ÁUDIO
-        // ================================================================
-
         let finalAudioURL = "";
         let nomeDoAudio = `${videoIdMusica}.mp3`;
 
-        // ================================================================
-        // USAR O PROXY DO DJANGO
-        // O Django acessa o Supabase privado e entrega o MP3
-        // ================================================================
-
-        if (dados.audio_url || dados.url || dados.audio) {
+        if (
+          dados.audio_url ||
+          dados.url ||
+          dados.audio
+        ) {
           finalAudioURL =
             `${API_ENDPOINT}/audio-arquivo/${videoIdMusica}/`;
 
@@ -194,10 +188,6 @@ export default function Player() {
             finalAudioURL
           );
         }
-
-        // ================================================================
-        // NÃO EXISTE ÁUDIO REAL
-        // ================================================================
 
         if (!finalAudioURL) {
           console.error(
@@ -210,6 +200,7 @@ export default function Player() {
           );
 
           setAudioCarregando(false);
+
           return;
         }
 
@@ -220,11 +211,9 @@ export default function Player() {
 
         setAudioNome(nomeDoAudio);
 
-        // ================================================================
-        // PITCH SHIFT
-        // ================================================================
-
-        console.log("🔊 Criando PitchShift...");
+        console.log(
+          "🔊 Criando PitchShift..."
+        );
 
         const pitchShift =
           new Tone.PitchShift({
@@ -240,10 +229,6 @@ export default function Player() {
         }
 
         pitchRef.current = pitchShift;
-
-        // ================================================================
-        // TONE PLAYER
-        // ================================================================
 
         console.log(
           "🔊 Inicializando buffer do Tone.Player..."
@@ -328,6 +313,7 @@ export default function Player() {
         console.log(
           "⚠️ Tone.Player ainda não está pronto."
         );
+
         return;
       }
 
@@ -335,6 +321,7 @@ export default function Player() {
         console.log(
           "⚠️ Áudio ainda está carregando."
         );
+
         return;
       }
 
@@ -344,12 +331,9 @@ export default function Player() {
         console.log(
           "⚠️ YouTube Player ainda não está pronto."
         );
+
         return;
       }
-
-      // ================================================================
-      // LIBERAR AUDIOCONTEXT APÓS INTERAÇÃO DO USUÁRIO
-      // ================================================================
 
       await Tone.start();
 
@@ -571,6 +555,7 @@ export default function Player() {
         console.log(
           "⏳ YouTube API ainda não carregada..."
         );
+
         return;
       }
 
@@ -578,6 +563,7 @@ export default function Player() {
         console.log(
           "⚠️ Elemento do YouTube ainda não existe."
         );
+
         return;
       }
 
@@ -604,19 +590,10 @@ export default function Player() {
               },
 
               events: {
-                // ======================================================
-                // YOUTUBE PRONTO
-                // ======================================================
-
                 onReady: (event) => {
                   console.log(
                     "✅ YouTube Player pronto."
                   );
-
-                  // ====================================================
-                  // ÁUDIO ORIGINAL DO YOUTUBE
-                  // DESMUTADO
-                  // ====================================================
 
                   console.log(
                     "🔊 Áudio original do YouTube mantido DESMUTADO."
@@ -624,10 +601,6 @@ export default function Player() {
 
                   iniciarSincronizacao();
                 },
-
-                // ======================================================
-                // MUDANÇA DE ESTADO
-                // ======================================================
 
                 onStateChange: (event) => {
                   const estado =
@@ -638,7 +611,6 @@ export default function Player() {
                     estado
                   );
 
-                  // PLAYING
                   if (
                     estado ===
                     window.YT.PlayerState.PLAYING
@@ -655,7 +627,6 @@ export default function Player() {
                     iniciarAudio();
                   }
 
-                  // PAUSED
                   else if (
                     estado ===
                     window.YT.PlayerState.PAUSED
@@ -670,7 +641,6 @@ export default function Player() {
                     pausarAudio();
                   }
 
-                  // BUFFERING
                   else if (
                     estado ===
                     window.YT.PlayerState.BUFFERING
@@ -680,7 +650,6 @@ export default function Player() {
                     );
                   }
 
-                  // ENDED
                   else if (
                     estado ===
                     window.YT.PlayerState.ENDED
@@ -709,10 +678,6 @@ export default function Player() {
       }
     }
 
-    // ================================================================
-    // API JÁ EXISTE
-    // ================================================================
-
     if (
       window.YT &&
       window.YT.Player
@@ -723,10 +688,6 @@ export default function Player() {
       criarYoutubePlayer();
 
     } else {
-
-      // ==============================================================
-      // CARREGAR API
-      // ==============================================================
 
       console.log(
         "📡 Carregando YouTube IFrame API..."
@@ -775,10 +736,6 @@ export default function Player() {
       }
     }
 
-    // ================================================================
-    // LIMPEZA
-    // ================================================================
-
     return () => {
       ativo = false;
 
@@ -796,15 +753,16 @@ export default function Player() {
           null;
       }
 
-      if (
-        youtubeRef.current &&
-        typeof youtubeRef.current.destroy ===
-          "function"
-      ) {
-        try {
-          youtubeRef.current.destroy();
-        } catch {}
-      }
+      // IMPORTANTE:
+      // Não chamar youtube.destroy() aqui.
+      //
+      // O YouTube IFrame API manipula o DOM internamente.
+      // Quando o React desmonta o componente, chamar destroy()
+      // ao mesmo tempo pode provocar:
+      //
+      // "NotFoundError: Failed to execute 'removeChild'"
+      //
+      // Deixamos o React cuidar da desmontagem do elemento.
 
       youtubeRef.current = null;
     };
@@ -932,10 +890,13 @@ export default function Player() {
         )
       ];
 
-    console.log("🎉 MOSTRANDO RESULTADO:", {
-      nota,
-      mensagem,
-    });
+    console.log(
+      "🎉 MOSTRANDO RESULTADO:",
+      {
+        nota,
+        mensagem,
+      }
+    );
 
     setResultado({
       nota,
@@ -1025,90 +986,6 @@ export default function Player() {
   }
 
   // =========================================================================
-  // TELA DE RESULTADO
-  // =========================================================================
-
-  if (resultado) {
-    return (
-      <div
-        style={{
-          minHeight: "100vh",
-          display: "flex",
-          flexDirection: "column",
-          alignItems: "center",
-          justifyContent: "center",
-          background:
-            "linear-gradient(135deg, #111827, #312e81)",
-          color: "#fff",
-          padding: "30px",
-          textAlign: "center",
-        }}
-      >
-        <h1
-          style={{
-            fontSize: "42px",
-            marginBottom: "10px",
-          }}
-        >
-          🎤 Resultado
-        </h1>
-
-        <div
-          style={{
-            fontSize: "80px",
-            fontWeight: "bold",
-            margin: "20px",
-          }}
-        >
-          {resultado.nota}
-        </div>
-
-        <h2>
-          {resultado.mensagem}
-        </h2>
-
-        <div
-          style={{
-            display: "flex",
-            gap: "15px",
-            marginTop: "30px",
-            flexWrap: "wrap",
-            justifyContent: "center",
-          }}
-        >
-          <button
-            onClick={() =>
-              setResultado(null)
-            }
-            style={{
-              padding:
-                "14px 24px",
-              fontSize: "18px",
-              cursor: "pointer",
-            }}
-          >
-            🎤 Cantar novamente
-          </button>
-
-          <button
-            onClick={() =>
-              navigate(-1)
-            }
-            style={{
-              padding:
-                "14px 24px",
-              fontSize: "18px",
-              cursor: "pointer",
-            }}
-          >
-            ← Voltar
-          </button>
-        </div>
-      </div>
-    );
-  }
-
-  // =========================================================================
   // JSX PRINCIPAL
   // =========================================================================
 
@@ -1121,6 +998,134 @@ export default function Player() {
         padding: "20px",
       }}
     >
+
+      {/* =====================================================
+          TELA DE RESULTADO
+          
+          IMPORTANTE:
+          O resultado agora fica sobre o Player através de
+          position: fixed.
+
+          O YouTube continua montado no DOM.
+          Isso evita o conflito React × YouTube IFrame API.
+      ====================================================== */}
+
+      {resultado && (
+        <div
+          style={{
+            position: "fixed",
+            inset: 0,
+            zIndex: 99999,
+            minHeight: "100vh",
+            width: "100%",
+            background:
+              "linear-gradient(135deg, #111827, #312e81)",
+            color: "#ffffff",
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            justifyContent: "center",
+            padding: "40px 20px",
+            boxSizing: "border-box",
+            textAlign: "center",
+          }}
+        >
+          <div
+            style={{
+              width: "100%",
+              maxWidth: "700px",
+              background: "#1f2937",
+              borderRadius: "20px",
+              padding: "40px 25px",
+              boxSizing: "border-box",
+              boxShadow:
+                "0 10px 40px rgba(0,0,0,0.5)",
+            }}
+          >
+            <div
+              style={{
+                fontSize: "60px",
+                marginBottom: "10px",
+              }}
+            >
+              👏
+            </div>
+
+            <h1
+              style={{
+                fontSize: "42px",
+                margin: "0 0 20px 0",
+              }}
+            >
+              🎤 Resultado
+            </h1>
+
+            <div
+              style={{
+                fontSize: "90px",
+                lineHeight: "1",
+                fontWeight: "bold",
+                margin: "25px 0",
+              }}
+            >
+              {resultado.nota}
+            </div>
+
+            <h2
+              style={{
+                fontSize: "28px",
+                margin: "10px 0 30px 0",
+              }}
+            >
+              {resultado.mensagem}
+            </h2>
+
+            <div
+              style={{
+                display: "flex",
+                gap: "15px",
+                justifyContent: "center",
+                flexWrap: "wrap",
+              }}
+            >
+
+              <button
+                onClick={() => {
+                  setResultado(null);
+                  setTocando(false);
+                }}
+                style={{
+                  padding: "14px 24px",
+                  fontSize: "18px",
+                  fontWeight: "bold",
+                  cursor: "pointer",
+                  borderRadius: "10px",
+                  border: "none",
+                }}
+              >
+                🎤 Cantar novamente
+              </button>
+
+              <button
+                onClick={() =>
+                  navigate(-1)
+                }
+                style={{
+                  padding: "14px 24px",
+                  fontSize: "18px",
+                  fontWeight: "bold",
+                  cursor: "pointer",
+                  borderRadius: "10px",
+                  border: "none",
+                }}
+              >
+                ← Voltar
+              </button>
+
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* =====================================================
           TÍTULO
@@ -1399,4 +1404,5 @@ export default function Player() {
     </div>
   );
 }
+
 
