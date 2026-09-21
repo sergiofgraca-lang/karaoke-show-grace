@@ -138,63 +138,30 @@ export default function Player() {
     async function prepararAudio() {
       try {
 
-        // Localize o fetch dentro do seu useEffect ou função de carregar áudio e mude para:
-const API_URL = import.meta.env.VITE_API_URL || "https://vercel.app";
+// 1. Localize o trecho onde o Player busca a URL para alimentar o Tone.js e mude para:
+console.log("🔎 Forçando carregamento de áudio via API expressa para o videoId:", videoId);
 
-console.log(`🔎 Procurando áudio associado ao videoId: ${videoId}`);
+// Definição estrita, linear e com barras contra erro de DNS:
+const urlFinalDoAudio = "https://vevioz.com" + videoId;
 
-// Mudamos o endpoint de /audio/ para /salvar/ para usar a rota que está ativa e funcional
-const resposta = await fetch(`${API_URL}/salvar/?videoId=${videoId}&titulo=Karaoke`);
+console.log("🎵 URL final montada com sucesso:", urlFinalDoAudio);
 
-if (!resposta.ok) {
-  throw new Error(`Erro na busca do áudio: ${resposta.status}`);
-}
-
-const dadosAudio = await resposta.json();
-console.log("🎯 Resposta do Django recebida:", dadosAudio);
-
-        console.log("🎵 Preparando Tone.js...");
-        console.log(
-          "🔎 Procurando áudio associado ao videoId:",
-          videoIdMusica
-        );
-
-        audioProntoRef.current = false;
-        setAudioPronto(false);
-        setAudioCarregando(true);
-        setErroAudio("");
-
-        limparAudio();
-
-        if (!videoIdMusica) {
-          setErroAudio("VideoId da música não encontrado.");
-          setAudioCarregando(false);
-          return;
-        }
-// 1. Localize a variável onde a URL final do áudio é definida para o Tone.Player
-console.log(`🔎 Procurando áudio associado ao videoId: ${videoId}`);
-
-// JOGADA MESTRE: URL direta da infraestrutura de streaming aberto de alta velocidade
-const urlDiretaDoAudio = `https://vevioz.com{videoId}`;
-
-console.log(`🎵 URL final do áudio injetada diretamente: ${urlDiretaDoAudio}`);
-
-// 2. Garanta que o seu Tone.Player ou a inicialização do buffer consuma essa 'urlDiretaDoAudio'
-// Exemplo de como deve ficar a criação do player de áudio do Tone.js:
+// 2. Garanta que o seu Tone.Player carregue exatamente essa constante 'urlFinalDoAudio':
 if (playerTone) {
-  playerTone.dispose(); // Limpa instâncias antigas da memória
+  playerTone.dispose(); // Limpa instâncias velhas da memória RAM
 }
 
 playerTone = new Tone.Player({
-  url: urlDiretaDoAudio,
+  url: urlFinalDoAudio,
   autostart: false,
   onload: () => {
-    console.log("✅ Tone.js carregado e pronto para reprodução.");
+    console.log("✅ Tone.js carregado com sucesso e pronto para alteração de tom!");
   },
   onerror: (err) => {
-    console.error("❌ Erro ao carregar buffer do player:", err);
+    console.error("❌ Erro ao decodificar buffer do player:", err);
   }
 }).toDestination();
+   
 
 
         // ================================================================
