@@ -138,14 +138,16 @@ export default function Player() {
     async function prepararAudio() {
       try {
 
-// 1. Localize o trecho onde o Player busca a URL para alimentar o Tone.js e mude para:
-console.log("🔎 Forçando carregamento de áudio via API expressa para o videoId:", videoId);
+  // =========================================================================
+  // CONSTUTOR INDESTRUTÍVEL DE URL CONTRA OTIMIZAÇÕES DO VITE
+  // =========================================================================
+  console.log("🔎 Forçando carregamento de áudio via API expressa para o videoId:", videoId);
 
-  // =========================================================================
-  // ROTA CRÍTICA DA API DE AUDIO - CONVERSOR DE ALTA VELOCIDADE
-  // =========================================================================
-  const urlFinalDoAudio = "https://vevioz.com" + videoId;
-  console.log("🎯 URL final de áudio montada:", urlFinalDoAudio);
+  // O uso do "new URL" obriga o motor JavaScript a respeitar estritamente a rota e as barras
+  const construtorUrl = new URL(`/api/button/mp3/${videoId}`, "https://vevioz.com");
+  const urlFinalDoAudio = construtorUrl.toString();
+
+  console.log("🎯 URL final de áudio validada por DNS:", urlFinalDoAudio);
 
 // 2. Garanta que o seu Tone.Player carregue exatamente essa constante 'urlFinalDoAudio':
 if (playerTone) {
