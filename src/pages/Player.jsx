@@ -133,8 +133,26 @@ export default function Player() {
   useEffect(() => {
     let ativo = true;
 
+
+    
     async function prepararAudio() {
       try {
+
+        // Localize o fetch dentro do seu useEffect ou função de carregar áudio e mude para:
+const API_URL = import.meta.env.VITE_API_URL || "https://vercel.app";
+
+console.log(`🔎 Procurando áudio associado ao videoId: ${videoId}`);
+
+// Mudamos o endpoint de /audio/ para /salvar/ para usar a rota que está ativa e funcional
+const resposta = await fetch(`${API_URL}/salvar/?videoId=${videoId}&titulo=Karaoke`);
+
+if (!resposta.ok) {
+  throw new Error(`Erro na busca do áudio: ${resposta.status}`);
+}
+
+const dadosAudio = await resposta.json();
+console.log("🎯 Resposta do Django recebida:", dadosAudio);
+
         console.log("🎵 Preparando Tone.js...");
         console.log(
           "🔎 Procurando áudio associado ao videoId:",
