@@ -133,12 +133,10 @@ export default function Player() {
   useEffect(() => {
     let ativo = true;
 
-
     async function prepararAudio() {
       try {
-
-  // =========================================================================
-  // BUSCAR ÁUDIO REAL NO DJANGO
+        // ================================================================
+        // BUSCAR ÁUDIO REAL NO DJANGO
         // ================================================================
 
         let dados = {};
@@ -175,54 +173,52 @@ export default function Player() {
 
         if (!ativo) return;
 
+        // ================================================================
+        // DEFINIR URL REAL DO ÁUDIO
+        // ================================================================
 
-// ================================================================
-// DEFINIR URL REAL DO ÁUDIO
-// ================================================================
+        let finalAudioURL = "";
+        let nomeDoAudio = `${videoIdMusica}.mp3`;
 
-let finalAudioURL = "";
-let nomeDoAudio = `${videoIdMusica}.mp3`;
+        // ================================================================
+        // USAR O PROXY DO DJANGO
+        // O Django acessa o Supabase privado e entrega o MP3
+        // ================================================================
 
-// ================================================================
-// USAR O PROXY DO DJANGO
-// O Django acessa o Supabase privado e entrega o MP3
-// ================================================================
+        if (dados.audio_url || dados.url || dados.audio) {
+          finalAudioURL =
+            `${API_ENDPOINT}/audio-arquivo/${videoIdMusica}/`;
 
-if (dados.audio_url || dados.url || dados.audio) {
-  finalAudioURL =
-    `${API_ENDPOINT}/audio-arquivo/${videoIdMusica}/`;
+          console.log(
+            "🎧 Áudio será carregado pelo proxy Django:",
+            finalAudioURL
+          );
+        }
 
-  console.log(
-    "🎧 Áudio será carregado pelo proxy Django:",
-    finalAudioURL
-  );
-}
+        // ================================================================
+        // NÃO EXISTE ÁUDIO REAL
+        // ================================================================
 
-// ================================================================
-// NÃO EXISTE ÁUDIO REAL
-// ================================================================
+        if (!finalAudioURL) {
+          console.error(
+            "❌ Nenhum áudio real associado à música:",
+            videoIdMusica
+          );
 
-if (!finalAudioURL) {
-  console.error(
-    "❌ Nenhum áudio real associado à música:",
-    videoIdMusica
-  );
+          setErroAudio(
+            "Esta música ainda não possui um áudio real associado."
+          );
 
-  setErroAudio(
-    "Esta música ainda não possui um áudio real associado."
-  );
+          setAudioCarregando(false);
+          return;
+        }
 
-  setAudioCarregando(false);
-  return;
-}
+        console.log(
+          "🎵 URL final do áudio:",
+          finalAudioURL
+        );
 
-console.log(
-  "🎵 URL final do áudio:",
-  finalAudioURL
-);
-
-setAudioNome(nomeDoAudio);
-
+        setAudioNome(nomeDoAudio);
 
         // ================================================================
         // PITCH SHIFT
@@ -265,7 +261,6 @@ setAudioNome(nomeDoAudio);
               "✅ Tone.js carregado e pronto para reprodução."
             );
 
-            // Duração do áudio
             if (player.buffer) {
               audioDurationRef.current =
                 player.buffer.duration || 0;
@@ -315,7 +310,6 @@ setAudioNome(nomeDoAudio);
       }
     }
 
-
     prepararAudio();
 
     return () => {
@@ -323,7 +317,6 @@ setAudioNome(nomeDoAudio);
       limparAudio();
     };
   }, [videoIdMusica]);
-
 
   // =========================================================================
   // INICIAR ÁUDIO
@@ -620,8 +613,14 @@ setAudioNome(nomeDoAudio);
                     "✅ YouTube Player pronto."
                   );
 
-                  // Silencia o áudio original do YouTube
-                  event.target.mute();
+                  // ====================================================
+                  // ÁUDIO ORIGINAL DO YOUTUBE
+                  // DESMUTADO
+                  // ====================================================
+
+                  console.log(
+                    "🔊 Áudio original do YouTube mantido DESMUTADO."
+                  );
 
                   iniciarSincronizacao();
                 },
@@ -633,6 +632,11 @@ setAudioNome(nomeDoAudio);
                 onStateChange: (event) => {
                   const estado =
                     event.data;
+
+                  console.log(
+                    "🎬 ESTADO YOUTUBE:",
+                    estado
+                  );
 
                   // PLAYING
                   if (
@@ -812,71 +816,68 @@ setAudioNome(nomeDoAudio);
   // =========================================================================
 
   function aumentarTom() {
-  setTomAtual((atual) => {
-    const novoTom = atual + 1;
+    setTomAtual((atual) => {
+      const novoTom = atual + 1;
 
-    const valor =
-      novoTom > 12
-        ? 12
-        : novoTom;
+      const valor =
+        novoTom > 12
+          ? 12
+          : novoTom;
 
-    if (pitchRef.current) {
-      pitchRef.current.pitch = valor;
-    }
+      if (pitchRef.current) {
+        pitchRef.current.pitch = valor;
+      }
 
-    console.log(
-      "🎵 Tom:",
-      TONS[
-        ((valor % 12) + 12) % 12
-      ],
-      "Pitch:",
-      valor
-    );
+      console.log(
+        "🎵 Tom:",
+        TONS[
+          ((valor % 12) + 12) % 12
+        ],
+        "Pitch:",
+        valor
+      );
 
-    return valor;
-  });
-}
-
-
-function diminuirTom() {
-  setTomAtual((atual) => {
-    const novoTom = atual - 1;
-
-    const valor =
-      novoTom < -12
-        ? -12
-        : novoTom;
-
-    if (pitchRef.current) {
-      pitchRef.current.pitch = valor;
-    }
-
-    console.log(
-      "🎵 Tom:",
-      TONS[
-        ((valor % 12) + 12) % 12
-      ],
-      "Pitch:",
-      valor
-    );
-
-    return valor;
-  });
-}
-
-
-function voltarTomOriginal() {
-  if (pitchRef.current) {
-    pitchRef.current.pitch = 0;
+      return valor;
+    });
   }
 
-  setTomAtual(0);
+  function diminuirTom() {
+    setTomAtual((atual) => {
+      const novoTom = atual - 1;
 
-  console.log(
-    "🎵 Tom: C Pitch: 0"
-  );
-}
+      const valor =
+        novoTom < -12
+          ? -12
+          : novoTom;
 
+      if (pitchRef.current) {
+        pitchRef.current.pitch = valor;
+      }
+
+      console.log(
+        "🎵 Tom:",
+        TONS[
+          ((valor % 12) + 12) % 12
+        ],
+        "Pitch:",
+        valor
+      );
+
+      return valor;
+    });
+  }
+
+  function voltarTomOriginal() {
+    if (pitchRef.current) {
+      pitchRef.current.pitch = 0;
+    }
+
+    setTomAtual(0);
+
+    console.log(
+      "🎵 Tom: C Pitch: 0"
+    );
+  }
 
   // =========================================================================
   // TOM VISUAL
@@ -931,7 +932,7 @@ function voltarTomOriginal() {
         )
       ];
 
-        console.log("🎉 MOSTRANDO RESULTADO:", {
+    console.log("🎉 MOSTRANDO RESULTADO:", {
       nota,
       mensagem,
     });
@@ -940,6 +941,7 @@ function voltarTomOriginal() {
       nota,
       mensagem,
     });
+
     try {
       const aplausos =
         new Audio(
@@ -1291,11 +1293,11 @@ function voltarTomOriginal() {
             −
           </button>
 
-         <button
-  onClick={voltarTomOriginal}
->
-  Original
-</button>
+          <button
+            onClick={voltarTomOriginal}
+          >
+            Original
+          </button>
 
           <button
             onClick={aumentarTom}
@@ -1377,14 +1379,14 @@ function voltarTomOriginal() {
       >
 
         <p>
-          🎧 O áudio original do
-          YouTube está silenciado.
+          🔊 O áudio original do
+          YouTube está ativado.
         </p>
 
         <p>
           🎵 O áudio processado pelo
-          Tone.js é usado para permitir
-          alteração da tonalidade.
+          Tone.js também é usado para
+          permitir alteração da tonalidade.
         </p>
 
         <p>
@@ -1397,3 +1399,4 @@ function voltarTomOriginal() {
     </div>
   );
 }
+
