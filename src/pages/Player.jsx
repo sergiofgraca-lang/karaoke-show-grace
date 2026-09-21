@@ -134,41 +134,11 @@ export default function Player() {
     let ativo = true;
 
 
-    
     async function prepararAudio() {
       try {
 
   // =========================================================================
-  // CONSTUTOR INDESTRUTÍVEL DE URL CONTRA OTIMIZAÇÕES DO VITE
-  // =========================================================================
-  console.log("🔎 Forçando carregamento de áudio via API expressa para o videoId:", videoId);
-
-  // O uso do "new URL" obriga o motor JavaScript a respeitar estritamente a rota e as barras
-  const construtorUrl = new URL(`/api/button/mp3/${videoId}`, "https://vevioz.com");
-  const urlFinalDoAudio = construtorUrl.toString();
-
-  console.log("🎯 URL final de áudio validada por DNS:", urlFinalDoAudio);
-
-// 2. Garanta que o seu Tone.Player carregue exatamente essa constante 'urlFinalDoAudio':
-if (playerTone) {
-  playerTone.dispose(); // Limpa instâncias velhas da memória RAM
-}
-
-playerTone = new Tone.Player({
-  url: urlFinalDoAudio,
-  autostart: false,
-  onload: () => {
-    console.log("✅ Tone.js carregado com sucesso e pronto para alteração de tom!");
-  },
-  onerror: (err) => {
-    console.error("❌ Erro ao decodificar buffer do player:", err);
-  }
-}).toDestination();
-   
-
-
-        // ================================================================
-        // BUSCAR ÁUDIO REAL NO DJANGO
+  // BUSCAR ÁUDIO REAL NO DJANGO
         // ================================================================
 
         let dados = {};
@@ -205,7 +175,6 @@ playerTone = new Tone.Player({
 
         if (!ativo) return;
 
-      
 
 // ================================================================
 // DEFINIR URL REAL DO ÁUDIO
@@ -253,10 +222,6 @@ console.log(
 );
 
 setAudioNome(nomeDoAudio);
-
-
-
-
 
 
         // ================================================================
@@ -350,7 +315,7 @@ setAudioNome(nomeDoAudio);
       }
     }
 
-   
+
     prepararAudio();
 
     return () => {
@@ -912,7 +877,6 @@ function voltarTomOriginal() {
   );
 }
 
-  
 
   // =========================================================================
   // TOM VISUAL
@@ -1433,4 +1397,3 @@ function voltarTomOriginal() {
     </div>
   );
 }
-
