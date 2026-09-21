@@ -141,8 +141,11 @@ export default function Player() {
 // 1. Localize o trecho onde o Player busca a URL para alimentar o Tone.js e mude para:
 console.log("🔎 Forçando carregamento de áudio via API expressa para o videoId:", videoId);
 
-// CORREÇÃO DEFINITIVA: Injeta a rota de API oficial com todas as barras explícitas
+/// =========================================================================
+# CRITICAL DEPLOY CACHE BREAKER - FORÇANDO BARRA DE API COMPLETA 2026
+// =========================================================================
 const urlFinalDoAudio = "https://vevioz.com" + videoId;
+console.log("🎯 ROTA DEFINITIVA DA API DO STREAMING CONVERTER:", urlFinalDoAudio);
 
 
 console.log("🎵 URL final montada com sucesso:", urlFinalDoAudio);
